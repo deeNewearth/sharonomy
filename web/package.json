@@ -1,0 +1,35 @@
+{
+  "name": "sharonomy",
+  "version": "1.0.0",
+  "description": "sharonomy-package",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "shree dee",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-react": "^6.11.1",
+    "css-loader": "^0.24.0",
+    "file-loader": "^0.9.0",
+    "json-loader": "^0.5.4",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.2"
+  },
+  "dependencies": {
+    "bitcore-mnemonic": "^1.0.1",
+    "bootstrap": "^3.3.7",
+    "fetch": "^1.1.0",
+    "openchain": "~0.2.3",
+    "pubsub-js": "^1.5.3",
+    "react": "^15.3.1",
+    "react-bootstrap": "^0.30.3",
+    "react-dom": "^15.3.1",
+    "react-logger": "^1.1.0",
+    "rsvp": "^3.2.1",
+    "superagent": "^2.2.0"
+  }
+}
