@@ -57,9 +57,10 @@ module.exports = React.createClass({
         var code = new Mnemonic(this.state.passPhrase);
 
         /*if this fails make sure in file 
-        C:\codework\sharonomy\site2\node_modules\node-libs-browser\package
+        C:\codework\sharonomy\web\node_modules\node-libs-browser\package.json
         crypto browsify is updated. it fails cause webpack install old crypto-browserify
         "crypto-browserify": "~3.11.0",
+        and run npm install
         */
         var derivedKey = code.toHDPrivateKey(null, "livenet");
         var hdPrivateKey = new bitcore.HDPrivateKey(derivedKey.xprivkey);

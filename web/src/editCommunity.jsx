@@ -27,8 +27,9 @@ module.exports = React.createClass({
 
     getInitialState() {
         return {
-            full_name: 'San marcos lake atitlan bal dasd sadasdasdasdsa',
             handle: 'czczczzxczxcxzczx',
+
+            full_name: 'San marcos lake atitlan bal dasd sadasdasdasdsa',
             description: 'asdasdasdasdas\ndasdasdasdasdasd\nasdsadsadasdasdsadasdasdsad',
 
             error_text: '',
@@ -109,37 +110,19 @@ module.exports = React.createClass({
         me.setState({ HandleError: '' });
         me.setState({ savingData: true });
 
-        var apiClent = me.context.connector.ensureAPIClient();
-        apiClent.getDataRecord('/community/' + me.state.handle + '/', 'info')
-        .then(function (info) {
-            if (info.data) {
-                //the handle exists
-                me.setState({ HandleError: 'This handle is already taken. Please choose another' });
-                me.setState({ savingData: false });
-            } else {
+        me.context.connector.getKeyAync()
+        .then(function (key) {
+            var apiClent = me.context.connector.ensureAPIClient();
 
-
-                request
-                //.post('/api/Community/' + me.state.handle)
-                .put('/api/Community/' + me.state.handle)
-                .send(me.state)
-                //.set('X-API-Key', 'foobar')
-                .set('Accept', 'application/json')
-                .end(function (err, res) {
-                    if (err) {
-                        me.setState({ error_text: 'failed to save :' + err.message });
-                    }
+            apiClent.getDataRecord('/community/' + me.state.handle + '/', 'info')
+            .then(function (info) {
+                if (info.data) {
+                    //the handle exists
+                    //we are changing some information
+                    me.setState({ HandleError: 'This handle is already taken. Please choose another' });
                     me.setState({ savingData: false });
-                });
+                    return;
 
-
-                return;
-
-
-
-
-                me.context.connector.getKeyAync()
-                .then(function (key) {
                     var transaction = new openChain.TransactionBuilder(apiClent);
                     transaction.addRecord(info.key,
                         openChain.encoding.encodeString('test data'), info.version);
@@ -148,27 +131,50 @@ module.exports = React.createClass({
                     var signer = new openChain.MutationSigner(transaction.key);
 
                     transaction.addSigningKey(signer).submit()
-                        .then(function (response) {
-                            me.setState({ savingData: false });
-                            $scope.transactionHash = response["transaction_hash"];
-                            $scope.mutationHash = response["mutation_hash"];
-                        }, function (response) {
-                            var error = "failed to save : ";
+                    .then(function (response) {
+                        me.setState({ savingData: false });
+                        $scope.transactionHash = response["transaction_hash"];
+                        $scope.mutationHash = response["mutation_hash"];
+                    }, function (response) {
+                        var error = "failed to save : ";
 
-                            if (response.statusCode == 400) {
-                                error += response.data["error_code"];
-                            }
+                        if (response.statusCode == 400) {
+                            error += response.data["error_code"];
+                        }
 
-                            me.setState({ error_text: error });
-                            me.setState({ savingData: false });
-                        });
-                });
-            }
-        }, function (err) {
-            //openchain error handling sucks it never makes it here
-            me.setState({ error_text: 'failed to save.  existance check failed : ' + err.message });
-            me.setState({ savingData: false });
+                        me.setState({ error_text: error });
+                        me.setState({ savingData: false });
+                    });
+
+                } else {
+                    request
+                    //.post('/api/Community/' + me.state.handle)
+                    .put('/api/Community/' + me.state.handle)
+                    .send({
+                        full_name: me.state.full_name,
+                        description: me.state.description,
+                        admin_addresses: [key.privateKey.toAddress().toString()]
+                    })
+                    //.set('X-API-Key', 'foobar')
+                    .set('Accept', 'application/json')
+                    .end(function (err, res) {
+                        if (err) {
+                            me.setState({ error_text: 'failed to save :' + err.message });
+                        }
+                        me.setState({ savingData: false });
+                    });
+
+                }
+            }, function (err) {
+                //openchain error handling sucks it never makes it here
+                me.setState({ error_text: 'failed to save.  existance check failed : ' + err.message });
+                me.setState({ savingData: false });
+            });
+
+
         });
+
+
 
     },
 

@@ -12,5 +12,8 @@ namespace web.Models
         public string fullName { get; set; }
 
         public string description { get; set; }
+
+        [JsonProperty("admin_addresses")]
+        public string[] adminAddresses { get; set; }
     }
 }

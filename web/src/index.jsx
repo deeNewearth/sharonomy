@@ -1,30 +1,40 @@
 ﻿var React = require('react');
 var ReactDOM = require('react-dom');
+var Router = require('react-router').Router;
+var Route = require('react-router').Route;
+var hashHistory = require('react-router').hashHistory;
+
+
 require('bootstrap/dist/css/bootstrap.css');
 require('./assets/font-awesome-4.6.3/css/font-awesome.css');
-var PrimaryContent = require('./editCommunity');
+require('./assets/customPositions.css');
 
-var apiService = require('./services/apiService');
+var editCommunity = require('./editCommunity');
+var communityIssue = require('./communityIssue');
+
+var apiService = require('./js/apiService');
 var Signin = require('./signin');
 
 var Wrapper = React.createClass({
     getChildContext() {
         return {
-            color: "purple",
             connector:apiService
         };
     },
     childContextTypes: {
-        color: React.PropTypes.string,
         connector: React.PropTypes.object
     },
 
     render: function() {
         return (
     <div>
-        <h1>Hello, jsx! 9</h1>
+        <h1>Site banner</h1>
+        
         <Signin/>
-        <PrimaryContent />
+        <Router history={hashHistory}>
+            <Route path="/" component={communityIssue}/>
+            <Route path="edit" component={editCommunity}/>
+        </Router>
     </div>
         );
 }

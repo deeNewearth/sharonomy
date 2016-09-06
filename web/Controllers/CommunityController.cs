@@ -16,6 +16,9 @@ namespace web.Controllers
         const string admin = "combat pélican gagner bateau caporal infini charbon neutron détester menhir causer espoir carbone saugrenu obscur inexact torrent rayonner laisser relief féroce honteux cirer époque";
         // corresponding address is "XiqvPB63hh8TML2iWYGDvF7i3HXRxqv3nN" : add this address to admin list in openchain server config.json
 
+        const string communityadmin = "educate mutual festival portion card pink divide same cart soon pony wasp";
+        //address is XuvjuhA6uU77KwvUEJ8oHnkRJnV1RnsCyi
+
         // GET: api/values
         [HttpGet]
         public IEnumerable<string> Get()
