@@ -1,3 +1,8 @@
 ﻿.forminLinewithHelpBlock .form-group{
     vertical-align: top;
 }
+
+@media (min-width: 768px) {
+    .large_screenmin350{min-width:350px;}
+    .form-inline .form-group{margin-right: 5px;}
+}

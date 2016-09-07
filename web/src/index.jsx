@@ -10,10 +10,11 @@ require('./assets/font-awesome-4.6.3/css/font-awesome.css');
 require('./assets/customPositions.css');
 
 var editCommunity = require('./editCommunity');
-var communityIssue = require('./communityIssue');
+var communityIssue = require('./components/issueHours/issueHours');
 
 var apiService = require('./js/apiService');
 var Signin = require('./signin');
+var testComp = require('./body');
 
 var Wrapper = React.createClass({
     getChildContext() {
@@ -34,6 +35,7 @@ var Wrapper = React.createClass({
         <Router history={hashHistory}>
             <Route path="/" component={communityIssue}/>
             <Route path="edit" component={editCommunity}/>
+            <Route path="test" component={testComp}/>
         </Router>
     </div>
         );
