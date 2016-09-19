@@ -3,17 +3,21 @@ var openChain = require('openchain');
 var RSVP = require('rsvp');
 var PubSub = require('pubsub-js');
 
-var _rootKey =null;
+var _rootKey = null;
+
+var _communityOcUrl = 'http://localhost:63154/';
+var _apiClient = null;
+var _CommunityHandle = 'san_marcos_lake_atitlan';
+
 
 module.exports = {
-    url: 'http://localhost:63154/',
-    apiClient: null,
+    getCommunityHandle(){return _CommunityHandle;},
     ensureAPIClient() {
-        if (!this.apiClient) {
-            this.apiClient = new openChain.ApiClient(this.url);
-            this.apiClient.initialize();
+        if (!_apiClient) {
+            _apiClient = new openChain.ApiClient(this.url);
+            _apiClient.initialize();
         }
-        return this.apiClient
+        return _apiClient
     },
     getKeyAync() {
         var me = this;

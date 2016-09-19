@@ -21,7 +21,6 @@ module.exports = React.createClass({
     },
 
     contextTypes: {
-        color: React.PropTypes.string,
         connector: React.PropTypes.object
     },
 

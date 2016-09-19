@@ -71,29 +71,33 @@ module.exports = React.createClass({
         this.closeCB = closeCB;
     },
 
-    fecthResults(value){
-        var my = this;
-        this.props.SearchQuery(value)
-        .then(function (results) {
-            if (my.lastSearchId !== thisSearchID)
-                return; //stale search
-        }, function (err) {
-            if (my.lastSearchId !== thisSearchID)
-                return; //stale search
-        });
-    },
-    
     //the text input lets this now that new search is to be done
     onSearchChanged(value) {
         //this is a method call returning a promise
         if (this.props.SearchQuery) {
-            let thisSearchID = new Date().getTime();
-            this.lastSearchId = thisSearchID;
 
-            _.debounce(this.fecthResults, 1000, {
-                'leading': false,
-                'trailing': true
-            });
+            if (!this.debouncedFetch) {
+                var me = this;
+
+                this.debouncedFetch = _.throttle(function (pattern) {
+                    let thisSearchID = new Date().getTime();
+                    me.lastSearchId = thisSearchID;
+                    me.props.SearchQuery(pattern)
+                    .then(function (results) {
+                        if (me.lastSearchId !== thisSearchID)
+                            return; //stale search
+                    }, function (err) {
+                        if (me.lastSearchId !== thisSearchID)
+                            return; //stale search
+                    });
+                },2000, {
+                    'leading': false,
+                    'trailing': true
+                });
+
+            }
+
+            this.debouncedFetch(value);
         }
     },
     

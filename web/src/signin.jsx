@@ -40,7 +40,7 @@ module.exports = React.createClass({
     },
     cancel() {
         this.setState({ showModal: false });
-        clearState();
+        this.clearState();
         
         if (this.pubKeyCallBack.error_callback)
             this.pubKeyCallBack.error_callback('User cancelled');

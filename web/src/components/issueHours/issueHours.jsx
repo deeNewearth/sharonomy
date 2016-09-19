@@ -153,7 +153,7 @@ module.exports = React.createClass({
             </Grid>);
         
         return (
-            <div>
+            <div className="container">
                 <div>Navigation : <Link to="/edit">edit</Link></div>
 
                 <div className="well">

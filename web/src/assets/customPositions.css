@@ -6,3 +6,5 @@
     .large_screenmin350{min-width:350px;}
     .form-inline .form-group{margin-right: 5px;}
 }
+
+.modal-body{padding:20px;}

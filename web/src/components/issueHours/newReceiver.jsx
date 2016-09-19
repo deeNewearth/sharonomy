@@ -10,8 +10,14 @@ var InputGroup = require('react-bootstrap').InputGroup;
 var Tooltip = require('react-bootstrap').Tooltip;
 var OverlayTrigger = require('react-bootstrap').OverlayTrigger;
 var Form = require('react-bootstrap').Form;
+
 var DropdownInput = require('../inputDropDown');
 var request = require('superagent');
+
+var RSVP = require('rsvp');
+var apiService = require('../../js/apiService');
+
+var EditUser = require('../editUser/editUser');
 
 var UserSearchTemplate = React.createClass({
     render() {
@@ -105,14 +111,6 @@ module.exports = React.createClass({
             return;
         }
 
-        request
-                    .get('/api/User/aaaaa/rrrr')
-                    .set('Accept', 'application/json')
-                    .end(function (err, res) {
-                        var g = 9;
-                    });
-
-
         this.state.Errors = {};
 
         if (this.props.addNewRecepient)
@@ -121,20 +119,32 @@ module.exports = React.createClass({
         this.showHelpErrors = false;
     },
 
+    fetchUsers(pattern) {
+        return new RSVP.Promise(function (resolve, reject) {
+            request
+            .get('/api/User/' + apiService.getCommunityHandle() + '/' + pattern)
+            .set('Accept', 'application/json')
+            .end(function (err, res) {
+                var g = 9;
+            });
+
+        });
+    },
+    showUserDlg() { this.setState({ NewUser: {}})},
+
     render: function () {
         const receiverTooltip = (
             <Tooltip id="receiverTooltip">Please enter receiver's handle</Tooltip>
         );
-        const searchTooltip = (
-            <Tooltip id="searchTooltip">Search for registered users</Tooltip>
+        const useraddTooltip = (
+            <Tooltip id="useraddTooltip">Add new user</Tooltip>
         );
 
-        var searchNames = ['Sydney', 'Melbourne', 'Brisbane',
-                                        'Adelaide', 'Perth', 'Hobart'];
         return (
 
             <Form inline onSubmit={this.onAddUser} 
                   className="forminLinewithHelpBlock text-center">
+                <EditUser user={this.state.NewUser}/>
                 <FormGroup validationState={this.ishandleValid() }>
                     <InputGroup>
                         <InputGroup.Addon><OverlayTrigger placement="right" 
@@ -143,14 +153,16 @@ module.exports = React.createClass({
                             </OverlayTrigger>
                         </InputGroup.Addon>
                         
-                        <DropdownInput placeholder="Search for user">
+                        <DropdownInput placeholder="Search for user"
+                                       SearchQuery={this.fetchUsers}>
                             <UserSearchTemplate/>
                         </DropdownInput>
                         
                         <InputGroup.Button>
-                            <Button><OverlayTrigger placement="left" 
-                                                      overlay={searchTooltip}>
-                                        <i className="fa fa-search"></i>
+                            <Button onClick={this.showUserDlg}
+                                    ><OverlayTrigger placement="left" 
+                                                      overlay={useraddTooltip}>
+                                        <i className="fa fa-user-plus text-warning"></i>
                             </OverlayTrigger></Button>
                         </InputGroup.Button>
                         
