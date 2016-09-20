@@ -54,7 +54,7 @@ var CustomMenu = React.createClass({
 
 module.exports = React.createClass({
     getInitialState() {
-        return { results: [] };
+        return { results: null};
     },
 
     onBlur(e) {
@@ -86,28 +86,33 @@ module.exports = React.createClass({
                     .then(function (results) {
                         if (me.lastSearchId !== thisSearchID)
                             return; //stale search
+                        
+                        me.setState({ results: results, fethcingData: false });
+
                     }, function (err) {
                         if (me.lastSearchId !== thisSearchID)
                             return; //stale search
+                        this.setState({ fethcingData: false, fetchError: 'lookup failed' });
                     });
-                },2000, {
+                },500, {
                     'leading': false,
                     'trailing': true
                 });
 
             }
 
+            this.setState({ fethcingData: true, fetchError: null  });
             this.debouncedFetch(value);
         }
     },
     
-    onSelect(key,e) {
-        var t = 3;
+    onSelect(key) {
+        if (this.props.onSelected)
+            this.props.onSelected(this.state.results[key]);
     },
     render: function () {
-        
+        var me = this;
         return (
-    
         <Dropdown id="dropdown-custom-menu" onBlur={this.onBlur}
                   style={{width:"100%"}}>
             
@@ -115,16 +120,33 @@ module.exports = React.createClass({
                           setCloseCB={this.callCloseCB} onSearchChanged={this.onSearchChanged}/>
 
             <CustomMenu bsRole="menu">
-              <MenuItem onSelect={this.onSelect}
-                        eventKey="1">{React.cloneElement(this.props.children, { bsStyle: 'danger' })}</MenuItem>
-              <MenuItem onSelect={this.onSelect}
-                        eventKey="2">1{this.props.children}</MenuItem>
-              <MenuItem eventKey="3" active>2</MenuItem>
-              <MenuItem eventKey={1} >
-        link that alerts
-      </MenuItem>
+                {
+                this.state.fethcingData?
+                    <div className="text-muted">
+                        <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i>Looking up...
+                    </div>
+                    :''
+                }
+
+                <span className="text-danger">{this.state.fetchError}</span>
+
+                {
+                    this.state.results && this.state.results.length == 0 ?
+                    <div className="text-warning">No matches found</div>:''
+                }
+                
+                {
+                    this.state.results?
+                        this.state.results.map(function (rec, i) {
+                            return(
+                            <MenuItem onSelect={me.onSelect} key={i} eventKey={i}>
+                                {React.cloneElement(me.props.children, { data: rec })}
+                            </MenuItem>
+                                  );
+                            }):''
+                }
             </CustomMenu>
-          </Dropdown>
+        </Dropdown>
     );
     }
 });

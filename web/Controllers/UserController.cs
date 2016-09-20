@@ -19,17 +19,15 @@ namespace web.Controllers
             _dbContext = dbContext;
         }
 
-        // GET: api/values
-        [HttpGet]
-        public IEnumerable<string> Get()
+        [HttpGet("{pattern}")]
+        public Models.User[] Get(String pattern)
         {
-            return new string[] { "value1", "value2" };
-        }
+            var ret = _dbContext.Users
+                .Where(u => u.handle.Contains(pattern) || u.name.Contains(pattern)
+                    || u.email.Contains(pattern) || u.phone.Contains(pattern)
+                ).Distinct().Take(10).ToArray();
 
-        [HttpGet("{community}/{pattern}")]
-        public string Get(String community, String pattern)
-        {
-            return "value";
+            return ret;
         }
 
         [HttpPost("{handle}")]

@@ -59,6 +59,12 @@ module.exports =  function(component, schema) {
                 errorStatus.errorString = 'Must be more then ' + this.fields[field].minimum + ' characters';
             }
 
+            else if (this.fields[field].max_value && component.state[field]
+                && component.state[field] > this.fields[field].max_value) {
+
+                errorStatus.errorString = 'Must be less then ' + this.fields[field].max_value;
+            }
+
             else if (this.fields[field].regex && component.state[field]
                 && !this.fields[field].regex.test(component.state[field])) {
                 errorStatus.errorString = 'not a valid ' + field

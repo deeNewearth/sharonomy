@@ -89,8 +89,9 @@ module.exports = React.createClass({
 
         user.Errors = {};
         user.showModal = true;
-        user.isNewUser = user.handle ? false : true;
-        
+
+        this.isNewUser = user.handle ? false : true;
+
         return user;
     },
     getInitialState() {
@@ -126,7 +127,7 @@ module.exports = React.createClass({
         this.validator.changed('name');
     },
     onBlurname() {
-        if (this.state.saveProgress || !this.state.isNewUser
+        if (this.state.saveProgress || !this.isNewUser
             ||  !this.state.name
             || (this.state.handle && this.state.handle.length > 0)
             || this.state.name.length == 0)
@@ -142,7 +143,7 @@ module.exports = React.createClass({
         this.validator.changed('email');
     },
     OnhandleChange(e) {
-        if (this.state.saveProgress || !this.state.isNewUser || e.target.value.length > 15)
+        if (this.state.saveProgress || !this.isNewUser || e.target.value.length > 15)
             return;
         this.setState({ handle: e.target.value.replace(/\W+/g, "_") });
         this.validator.changed('handle');
@@ -221,7 +222,7 @@ module.exports = React.createClass({
                    show={this.state.showModal} onHide={this.cancel}>
                 <Form horizontal onSubmit={this.done}>
                 <Modal.Header closeButton>
-                    <Modal.Title>{this.state.isNewUser ? 'New User':'Updating ' + this.state.handle}</Modal.Title>
+                    <Modal.Title>{this.isNewUser ? 'New User':'Updating ' + this.state.handle}</Modal.Title>
                 </Modal.Header>
 
                 <Modal.Body>
@@ -349,7 +350,7 @@ module.exports = React.createClass({
                         this.state.saveProgress ?
                                     <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i> : ''
                     }
-                    {this.state.isNewUser ? 'Create user':'Update'}
+                    {this.isNewUser ? 'Create user':'Update'}
                     </Button>
                     <Button onClick={this.cancel} bsStyle="warning">Cancel</Button>
                 </Modal.Footer>

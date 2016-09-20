@@ -19,29 +19,15 @@ var apiService = require('../../js/apiService');
 
 var EditUser = require('../editUser/editUser');
 
-var UserSearchTemplate = React.createClass({
-    render() {
-        return (<div>i ama user</div>);
-    }
-});
+var bizValidator = require('../../js/bizValidator');
+
+var UserCompactTemplate = require('../compactUser');
 
 module.exports = React.createClass({
-    processProperties(props) {
-        var rec = props;
-        rec.Errors = {};
-        if (rec.handle)
-            this.isUpdating = true;
-        else
-            rec.handle = '';
-
-        if (!rec.hours)
-            rec.hours = '';
-
-        this.isUpdating = false;
-        this.ErrorList= {};
-        this.showHelpErrors = false;
-
-        return rec;
+    processProperties(receipent) {
+        receipent.isUpdating = receipent.user && true;
+        receipent.Errors = {};
+        return receipent;
     },
     getInitialState() {
         return this.processProperties(this.props.recepient);
@@ -49,90 +35,61 @@ module.exports = React.createClass({
     componentWillReceiveProps: function (nextProps) {
         this.setState(this.processProperties(nextProps.recepient));
     },
-    
 
-    OnhandleChange(e) {
-        if (this.state.savingData || this.isUpdating)
-            return;
-        this.setState({ 'handle': e.target.value });
-    },
-
-    ishandleValid() {
-
-        if (this.state.handle.length > 5) {
-            if (this.ErrorList.handle)
-                delete this.ErrorList.handle;
-            return 'success';
-        }
-
-        this.ErrorList.handle = 'Handle must be at least 5 characters';
-
-        if (!this.showHelpErrors)
-            return;
-
-        return 'error';
-
+    componentWillMount() {
+        this.validator = new bizValidator(this, {
+            hours: { required: true, max_value: 10 }
+        });
     },
 
     OnhoursChange(e) {
-        if (this.state.savingData)
-            return;
         this.setState({ hours: e.target.value });
-    },
-
-    ishoursValid() {
-
-        if (this.state.hours && this.state.hours < 10) {
-            if (this.ErrorList.hours)
-                delete this.ErrorList.hoursHandle;
-            return 'success';
-        }
-
-        this.ErrorList.hours = 'Hours must be between 1 and 10';
-
-        if (!this.showHelpErrors)
-            return;
-
-        return 'error';
-
     },
 
     onAddUser(e) {
         e.preventDefault();
 
-        this.ErrorList = {};
-        this.showHelpErrors = true;
-        this.ishandleValid();
-        this.ishoursValid();
-
-
-        if (Object.keys(this.ErrorList).length > 0) {
-            this.setState({ Errors: this.ErrorList });
+        if (!this.validator.isValid())
             return;
-        }
 
-        this.state.Errors = {};
 
         if (this.props.addNewRecepient)
             this.props.addNewRecepient(this.state);
         
-        this.showHelpErrors = false;
+        
     },
 
     fetchUsers(pattern) {
         return new RSVP.Promise(function (resolve, reject) {
+            if (!pattern) {
+                resolve(null);
+                return;
+            }
             request
-            .get('/api/User/' + apiService.getCommunityHandle() + '/' + pattern)
+            .get('/api/User/' + pattern)
             .set('Accept', 'application/json')
             .end(function (err, res) {
-                var g = 9;
+                if (err)
+                    reject(err);
+                else
+                    resolve(res.body);
             });
 
         });
     },
+
+    onUserSelected(e) {
+        this.setState({ user: e });
+    },
+
+    onChangeUser() {
+        this.setState({ user: null });
+    },
+
     showUserDlg() { this.setState({ NewUser: {} }) },
     onUserEditCompleted(user) {
         this.setState({ NewUser: null });
+        this.setState({ user: user });
     },
 
     render: function () {
@@ -143,22 +100,47 @@ module.exports = React.createClass({
             <Tooltip id="useraddTooltip">Add new user</Tooltip>
         );
 
+        const changeUserTooltip = (
+            <Tooltip id="editTooltip">Change receiveing user</Tooltip>
+        );
+
+
         return (
 
             <Form inline onSubmit={this.onAddUser} 
                   className="forminLinewithHelpBlock text-center">
+                
                 <EditUser user={this.state.NewUser} onCompleted={this.onUserEditCompleted}/>
-                <FormGroup validationState={this.ishandleValid() }>
+                
+                <FormGroup>
+                    {this.state.user?
+                    <div style={{position:'relative'}}>
+                        <UserCompactTemplate data={this.state.user}/>
+
+                        <OverlayTrigger placement="bottom" overlay={changeUserTooltip}>
+                            <Button onClick={this.onChangeUser}
+                                    bsStyle="link" 
+                                    style={{ padding: '0px' ,position: 'absolute',
+                                                        right: '0px', top: '0px'} }>
+                                <i className="fa fa-edit"></i>
+                            </Button>
+                        </OverlayTrigger>
+
+                    </div>
+                    :
                     <InputGroup>
-                        <InputGroup.Addon><OverlayTrigger placement="right" 
+                        
+                        <InputGroup.Addon>
+                            <OverlayTrigger placement="right" 
                                                           overlay={receiverTooltip}>
-                            <i className="fa fa-user"></i>
+                                <i className="fa fa-user"></i>
                             </OverlayTrigger>
                         </InputGroup.Addon>
                         
                         <DropdownInput placeholder="Search for user"
+                                       onSelected={this.onUserSelected}
                                        SearchQuery={this.fetchUsers}>
-                            <UserSearchTemplate/>
+                            <UserCompactTemplate/>
                         </DropdownInput>
                         
                         <InputGroup.Button>
@@ -170,10 +152,13 @@ module.exports = React.createClass({
                         </InputGroup.Button>
                         
                     </InputGroup>
-                    <HelpBlock>{this.state.Errors.handle}</HelpBlock>
+                    
+                    
+                    }
+                    
                 </FormGroup>
 
-                <FormGroup  validationState={this.ishoursValid() }>
+                <FormGroup  validationState={this.validator.validate('hours')}>
                     <InputGroup style={{ maxWidth: '190px' } }>
                         <InputGroup.Addon><i className="fa fa-clock-o"></i></InputGroup.Addon>
                         <FormControl type="number" 
@@ -185,7 +170,7 @@ module.exports = React.createClass({
                 </FormGroup>
 
                 <FormGroup>
-                    <Button type="submit" bsStyle="info">
+                    <Button type="submit" bsStyle="info" disabled={!this.state.user}>
                         Add receiver
                     </Button>
                 </FormGroup>

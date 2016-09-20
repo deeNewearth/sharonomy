@@ -16,6 +16,8 @@ var HelpBlock = require('react-bootstrap').HelpBlock;
 var Button = require('react-bootstrap').Button;
 var Tooltip = require('react-bootstrap').Tooltip;
 var OverlayTrigger = require('react-bootstrap').OverlayTrigger;
+var Glyphicon = require('react-bootstrap').Glyphicon;
+
 var NewReceiver = require('./newReceiver');
 
 
@@ -110,7 +112,7 @@ module.exports = React.createClass({
                     </Column>
                     
                     <Column xs={8 }>
-                        Marlin Jones <small>({rec.handle})</small>
+                        {rec.user.name} <small>({rec.user.handle})</small>
                         <p><strong>{rec.hours} hours(s)</strong>
                         <OverlayTrigger placement="bottom" overlay={deleteTooltip}>
                             <Button onClick={me.onEditclicked.bind(null, { index:i, remove:true })}
@@ -128,7 +130,15 @@ module.exports = React.createClass({
                                     
                                     
                         <br />
-                        <small>thj87@gmail.com</small>
+                        <small><Glyphicon glyph="envelope" style={{marginRight: '5px'}}/>{rec.user.email}</small><br/>
+                        {
+                            rec.user.phone ?
+                                <small>
+                                    <Glyphicon glyph="phone-alt" style={{ marginRight: '5px' } }/>{rec.user.phone}
+                                </small>
+                                : ''
+                        }
+                        
                         </p>
                         <hr/>
                 </Column>
