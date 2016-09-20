@@ -130,7 +130,10 @@ module.exports = React.createClass({
 
         });
     },
-    showUserDlg() { this.setState({ NewUser: {}})},
+    showUserDlg() { this.setState({ NewUser: {} }) },
+    onUserEditCompleted(user) {
+        this.setState({ NewUser: null });
+    },
 
     render: function () {
         const receiverTooltip = (
@@ -144,7 +147,7 @@ module.exports = React.createClass({
 
             <Form inline onSubmit={this.onAddUser} 
                   className="forminLinewithHelpBlock text-center">
-                <EditUser user={this.state.NewUser}/>
+                <EditUser user={this.state.NewUser} onCompleted={this.onUserEditCompleted}/>
                 <FormGroup validationState={this.ishandleValid() }>
                     <InputGroup>
                         <InputGroup.Addon><OverlayTrigger placement="right" 

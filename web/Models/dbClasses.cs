@@ -1,10 +1,17 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
 
 namespace web.Models
 {
     public class CommunityContext : DbContext
     {
+        /*
+         * Add-Migration MIGARTIONAME to scaffold a migration
+         * Update-Database to apply the new migration to the database.
+         */
+
+
         public CommunityContext(DbContextOptions<CommunityContext> options)
             : base(options)
         {
@@ -12,52 +19,21 @@ namespace web.Models
             
         }
 
+        
         public DbSet<User> Users { get; set; }
-
-        /*
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-
-            optionsBuilder.UseSqlServer(@"Server = (localdb)\\mssqllocaldb; Database = EFGetStarted.ConsoleApp.NewDb; Trusted_Connection = True; ");
-
-        }*/
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            
             modelBuilder.Entity<User>()
-                .HasKey(c => new { c.communityHandle, c.handle });
+                .HasKey(c => new { c.handle });
+            
+            modelBuilder.Entity<User>()
+                .HasAlternateKey(c => new { c.email });
 
-            modelBuilder.Entity<User>()
-                .HasAlternateKey(c => new { c.communityHandle, c.email });
-
-            modelBuilder.Entity<User>()
-                .HasAlternateKey(c => new { c.communityHandle, c.phoneNumber });
         }
 
     }
 
-    public class User
-    {
-        
-        [StringLength(25)]
-        public string communityHandle { get; set; }
-
-        [StringLength(25)]
-        public string handle { get; set; }
-
-        public string email { get; set; }
-        public string phoneNumber { get; set; }
-
-        [StringLength(50)]
-        [Required]
-        public string firstName { get; set; }
-
-        [StringLength(50)]
-        [Required]
-        public string lastName { get; set; }
-
-        [StringLength(256)]
-        public string ImageUrl { get; set; }
-
-    }
+    
 }

@@ -38,7 +38,12 @@ namespace web
             // Add framework services.
             services.AddApplicationInsightsTelemetry(Configuration);
 
-            services.AddMvc();
+            var builder = services.AddMvc();
+
+            builder.AddMvcOptions(o => { o.Filters.Add(new Converters.GlobalExceptionFilter()); });
+
+            //services.AddScoped<Converters.CustomOneLoggingExceptionFilter>();
+
             var connection = @"Server = (localdb)\mssqllocaldb; Database = sharonomy; Trusted_Connection = True; ";
             services.AddDbContext<Models.CommunityContext>(options => options.UseSqlServer(connection));
         }

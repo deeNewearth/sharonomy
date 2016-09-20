@@ -17,6 +17,28 @@ module.exports =  function(component, schema) {
         return valid;
     };
 
+    this.changed =function(field){
+        if (this.ProcessingErrors && this.ProcessingErrors[field])
+            delete this.ProcessingErrors[field];
+    }
+
+    this.HandleProcessingError = function (err, saveMessage) {
+        var message = null;
+        if (err.response && err.response.body) {
+            this.ProcessingErrors = err.response.body.errors;
+            message = err.response.body.message;
+        }
+
+        if (!this.ProcessingErrors)
+            this.ProcessingErrors = {};
+
+        if (!this.ProcessingErrors.form) {
+            this.ProcessingErrors.form = saveMessage + ' : ' + message || err.message;
+        }
+
+        component.setState({ Errors: this.ProcessingErrors });
+    }
+
     this.validate = function (field) {
 
         var errors = component.state.Errors || {};
@@ -40,6 +62,10 @@ module.exports =  function(component, schema) {
             else if (this.fields[field].regex && component.state[field]
                 && !this.fields[field].regex.test(component.state[field])) {
                 errorStatus.errorString = 'not a valid ' + field
+            }
+
+            else if (this.ProcessingErrors && this.ProcessingErrors[field]) {
+                errorStatus.errorString = this.ProcessingErrors[field];
             }
 
             if (errorStatus.errorString)

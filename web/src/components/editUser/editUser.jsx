@@ -26,6 +26,11 @@ var bizValidator = require('../../js/bizValidator');
 
 require('./editUser.css');
 
+var request = require('superagent');
+var apiService = require('../../js/apiService');
+var _ = require('lodash');
+
+
 var GoogleAddress = scriptLoader.default(
     'https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyBG0SybP0EKWH3Jvwki7IR5AMyO_cUeeQc'
    )(React.createClass({
@@ -118,6 +123,7 @@ module.exports = React.createClass({
         if (this.state.saveProgress)
             return;
         this.setState({ name: e.target.value });
+        this.validator.changed('name');
     },
     onBlurname() {
         if (this.state.saveProgress || !this.state.isNewUser
@@ -127,22 +133,25 @@ module.exports = React.createClass({
             return;
 
         this.setState({ handle: this.state.name.replace(/\W+/g, "_").substring(0, 15) });
-        
+        this.validator.changed('handle');
     },
     OnemailChange(e) {
         if (this.state.saveProgress)
             return;
         this.setState({ email: e.target.value });
+        this.validator.changed('email');
     },
     OnhandleChange(e) {
         if (this.state.saveProgress || !this.state.isNewUser || e.target.value.length > 15)
             return;
         this.setState({ handle: e.target.value.replace(/\W+/g, "_") });
+        this.validator.changed('handle');
     },
     OnphoneChange(e) {
         if (this.state.saveProgress)
             return;
         this.setState({ phone: e.target.value });
+        this.validator.changed('phone');
     },
     OnaddressChange(e) {
         if (this.state.saveProgress )
@@ -153,13 +162,14 @@ module.exports = React.createClass({
         if (this.validator.showErrors)
             this.setState({ showUNvalidatedaddressCheckbox: !e.validated });
 
-        this.setState({ address: e.value});
+        this.setState({ address: e.value });
+        this.validator.changed('address');
     },
     oUnvalidedUseChange(e, checked) {
         this.UseUnvalidatedAddress = e.target.checked;
     },
     onAvatarChange(e) {
-        this.state.Avatar = e;
+        this.state.avatar = e;
     },
 
     cancel() {
@@ -173,10 +183,30 @@ module.exports = React.createClass({
 
         if (!this.validator.isValid())
             return;
-        
 
-        if (this.props.onCompleted)
-            this.props.onCompleted(this.state.user);
+        this.setState({ saveProgress: true });
+
+        var me = this;
+
+        me.validator.ProcessingErrors = {};
+        
+        request.post('/api/User' )
+        .set('Accept', 'application/json')
+        .send(_.pick(this.state,['handle','email','phone','name','address','avatar']))
+        .end(function (err, res) {
+
+            if (err) {
+                me.validator.HandleProcessingError(err, 'failed to save');
+                
+            } else {
+
+                if (me.props.onCompleted)
+                    me.props.onCompleted(res.body);
+            }
+
+            me.setState({ saveProgress: false });
+        });
+        
     },
     
     render() {
@@ -199,7 +229,7 @@ module.exports = React.createClass({
                        <Row>
                         <Column md={4}>
                             <div style={{ margin: '10px' }} className="text-center">
-                                <Avatar Src={this.state.Avatar} onChange={this.onAvatarChange}/>
+                                <Avatar Src={this.state.avatar} onChange={this.onAvatarChange}/>
                             </div>
 
                         </Column>
@@ -309,12 +339,10 @@ module.exports = React.createClass({
 
                         </Column>
                        </Row>
-                            
-                        
-                    
                 </Modal.Body>
 
                 <Modal.Footer>
+                    <div className="text-danger">{this.state.Errors.form}</div>
                     <Button type="submit" bsStyle="success" 
                                 disabled={this.state.saveProgress}>
                     {

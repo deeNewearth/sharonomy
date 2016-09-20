@@ -11,6 +11,14 @@ namespace web.Controllers
     [Route("api/[controller]")]
     public class UserController : Controller
     {
+
+        private Models.CommunityContext _dbContext;
+
+        public UserController(Models.CommunityContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
         // GET: api/values
         [HttpGet]
         public IEnumerable<string> Get()
@@ -18,17 +26,32 @@ namespace web.Controllers
             return new string[] { "value1", "value2" };
         }
 
-        // GET api/values/5
         [HttpGet("{community}/{pattern}")]
         public string Get(String community, String pattern)
         {
             return "value";
         }
 
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody]string value)
+        [HttpPost("{handle}")]
+        public String Post(String Handle,[FromBody]string value)
         {
+            return "value";
+        }
+
+        /// <summary>
+        /// creates a new User, will throw exception is User handle or email exists
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        [HttpPost]
+       // [ServiceFilter(typeof(Converters.CustomOneLoggingExceptionFilter))]
+        [Converters.UniqueViolation("PK_Users","handle","This user handle is already taken")]
+        [Converters.UniqueViolation("AK_Users_email", "email", "This email address already exists")]
+        public Models.User Post([FromBody]Models.User user)
+        {
+            _dbContext.Users.Add(user);
+            _dbContext.SaveChanges();
+            return user;
         }
 
         // PUT api/values/5
