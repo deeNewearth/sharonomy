@@ -33,6 +33,7 @@ var openChain = require('openchain');
 var _ = require('lodash');
 
 var Long = require('Long');
+var RSVP = require('rsvp');
 
 
 var GoogleAddress = scriptLoader.default(
@@ -94,7 +95,21 @@ module.exports = React.createClass({
         user.Errors = {};
         user.showModal = true;
 
+        if (!user.name)
+            user.name = '';
+        if (!user.email)
+            user.email = '';
+        if (!user.handle)
+            user.handle = '';
+        if (!user.phone)
+            user.phone = '';
+        if (!user.address)
+            user.address = '';
+
         this.isNewUser = user.handle ? false : true;
+
+        if(this.validator)
+            this.validator.reset();
 
         return user;
     },
@@ -191,95 +206,97 @@ module.exports = React.createClass({
 
         var me = this;
 
-        apiService.getKeyAync()
-        .then(function (key) {
-            apiService.ensureAPIClient()
-            .then(function (apiClent) {
-
-                me.setState({ saveProgress: true });
-                me.validator.ProcessingErrors = {};
-
-                apiClent.getDataRecord('/aka/' + me.state.handle + '/', 'info')
-                .then(function (info) {
-
-                    var transaction = new openChain.TransactionBuilder(apiClent);
-
-                    transaction.updateAccountRecord('/aka/' + me.state.handle + '/',
-                        "/asset/san_marcos_hours/", Long.fromString("0"))
-                    .then(function (a) {
-
-                        transaction.key = key;
-
-                        var signer = new openChain.MutationSigner(transaction.key);
-                        transaction.addSigningKey(signer)
-                        /* 
-                        
-                        transaction.updateAccountRecord(mutation.account, mutation.asset, Long.fromString(mutation.amount));
-                        
-                        
-                        .submit()
-                        .then(function (s) {
-                            var t = s;
-                        }, function (err) {
-                            var t = err;
-                        })*/
-
-                        ;
-
-                        //return;
-
-                        var mutation = transaction.build();
-                        var signatures = [];
-
-                        for (var i = 0; i < transaction.keys.length; i++) {
-                            signatures.push({
-                                signature: transaction.keys[i].sign(mutation).toHex(),
-                                pub_key: transaction.keys[i].publicKey.toHex()
-                            });
-                        }
-
-                        var toSend = {
-                            user: _.pick(me.state, ['handle', 'email', 'phone', 'name', 'address', 'avatar']),
-                            transaction: {
-                                mutation: mutation.toHex(),
-                                signatures: signatures
-                            }
-                        };
-                        toSend.user.communityHandle = apiService.getCommunityHandle();
-
-                        request.post('/api/User')
-                        .set('Accept', 'application/json')
-                        .send(toSend)
-                        .end(function (err, res) {
-
-                            if (err) {
-                                me.validator.HandleProcessingError(err, 'failed to save');
-
-                            } else {
-
-                                if (me.props.onCompleted)
-                                    me.props.onCompleted(res.body);
-                            }
-
-                            me.setState({ saveProgress: false });
-                        });
-
-                    }, function (fail) {
-                    });;
+        me.setState({ saveProgress: true });
+        me.validator.ProcessingErrors = {};
 
 
-                    /*transaction.addRecord(info.key,
-                        openChain.encoding.encodeString(JSON.stringify({
-                            email: me.state.email
-                        })), info.version);*/
+        RSVP.hash({
+            key: apiService.getKeyAync(),
+            apiClent: apiService.ensureAPIClient()
+        })
 
+        .then(function (results) {
+
+            return RSVP.hash({
+                info :results.apiClent.getDataRecord('/aka/' + me.state.handle + '/', 'info'),
+                key:results.key,
+                apiClent:results.apiClent
+            });
+        })
+        
+        .then(function (results) {
+
+            var transaction = new openChain.TransactionBuilder(results.apiClent);
+            transaction.key = results.key;
+
+            /*transaction.addRecord(info.key,
+                openChain.encoding.encodeString(JSON.stringify({
+                    email: me.state.email
+                })), info.version);*/
+
+            return transaction.updateAccountRecord('/aka/' + me.state.handle + '/',
+                apiService.getAssetName(), Long.fromString("0"))
                     
+        })
 
+        .then(function(transaction){
+
+            var signer = new openChain.MutationSigner(transaction.key);
+            transaction.addSigningKey(signer);
+                        
+
+            var mutation = transaction.build();
+            var signatures = [];
+
+            for (var i = 0; i < transaction.keys.length; i++) {
+                signatures.push({
+                    signature: transaction.keys[i].sign(mutation).toHex(),
+                    pub_key: transaction.keys[i].publicKey.toHex()
+                });
+            }
+
+            var toSend = {
+                user: _.pick(me.state, ['handle', 'email', 'phone', 'name', 'address', 'avatar']),
+                transaction: {
+                    mutation: mutation.toHex(),
+                    signatures: signatures
+                }
+            };
+            toSend.user.communityHandle = apiService.getCommunityHandle();
+
+            return new RSVP.Promise(function (resolve, reject) {
+                request.post('/api/User')
+                .set('Accept', 'application/json')
+                .send(toSend)
+                .end(function (err, res) {
+
+                    if (err) {
+                        reject(err);
+
+                    } else {
+
+                        if (me.props.onCompleted)
+                            me.props.onCompleted(res.body);
+                        resolve();
+                    }
+                    
                 });
 
-
             });
-        });
+
+
+        })
+
+        .catch(function (err) {
+            me.validator.HandleProcessingError(err, 'failed to save');
+        })
+
+        .finally(function () {
+            me.setState({ saveProgress: false });
+        })
+
+        ;
+
 
         
     },

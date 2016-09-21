@@ -3,7 +3,11 @@ var _ = require('lodash');
 
 module.exports =  function(component, schema) {
     
-    this.fields =schema,
+    this.fields = schema,
+
+    this.reset = function () {
+        this.showErrors = false;
+    };
 
     this.isValid = function() {
         this.showErrors = true;
@@ -33,7 +37,7 @@ module.exports =  function(component, schema) {
             this.ProcessingErrors = {};
 
         if (!this.ProcessingErrors.form) {
-            this.ProcessingErrors.form = saveMessage + ' : ' + message || err.message;
+            this.ProcessingErrors.form = saveMessage + ' : ' + message || (err.message || '');
         }
 
         component.setState({ Errors: this.ProcessingErrors });

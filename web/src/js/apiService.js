@@ -4,14 +4,16 @@ var RSVP = require('rsvp');
 var PubSub = require('pubsub-js');
 
 var _rootKey = null;
-
-var _communityOcUrl = 'http://localhost:63154/';
 var _apiClientPromise = null;
-var _CommunityHandle = 'san_marcos_lake_atitlan';
+
+const _communityOcUrl = 'http://localhost:63154/';
+const _CommunityHandle = 'san_marcos_lake_atitlan';
+const _theAsset = '/asset/san_marcos_hours/';
 
 
 module.exports = {
-    getCommunityHandle(){return _CommunityHandle;},
+    getCommunityHandle() { return _CommunityHandle; },
+    getAssetName() { return _theAsset; },
     ensureAPIClient() {
 
         if (!_apiClientPromise) {
