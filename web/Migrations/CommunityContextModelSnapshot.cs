@@ -18,6 +18,9 @@ namespace web.Migrations
 
             modelBuilder.Entity("web.Models.User", b =>
                 {
+                    b.Property<string>("communityHandle")
+                        .HasAnnotation("MaxLength", 25);
+
                     b.Property<string>("handle")
                         .HasAnnotation("MaxLength", 25);
 
@@ -39,9 +42,9 @@ namespace web.Migrations
                     b.Property<string>("phone")
                         .HasAnnotation("MaxLength", 15);
 
-                    b.HasKey("handle");
+                    b.HasKey("communityHandle", "handle");
 
-                    b.HasAlternateKey("email");
+                    b.HasAlternateKey("communityHandle", "email");
 
                     b.ToTable("Users");
                 });

@@ -11,6 +11,8 @@ var Button = require('react-bootstrap').Button;
 var openChain = require('openchain');
 var request = require('superagent');
 
+var apiService = require('./js/apiService');
+
 module.exports = React.createClass({
     displayName: 'editCommunity',
     mixins: [LoggerMixin],
@@ -111,66 +113,76 @@ module.exports = React.createClass({
 
         me.context.connector.getKeyAync()
         .then(function (key) {
-            var apiClent = me.context.connector.ensureAPIClient();
+            apiService.ensureAPIClient()
+            .then(function (apiClent) {
 
-            apiClent.getDataRecord('/community/' + me.state.handle + '/', 'info')
-            .then(function (info) {
-                if (info.data) {
-                    //the handle exists
-                    //we are changing some information
-                    me.setState({ HandleError: 'This handle is already taken. Please choose another' });
+                apiClent.getDataRecord('/community/' + me.state.handle + '/', 'info')
+                .then(function (info) {
+                    if (info.data) {
+
+                        //the handle exists
+
+                        /*
+                        //we are changing some information
+                        me.setState({ HandleError: 'This handle is already taken. Please choose another' });
+                        me.setState({ savingData: false });
+                        return;
+                        */
+
+                        var transaction = new openChain.TransactionBuilder(apiClent);
+                        transaction.addRecord(info.key,
+                            openChain.encoding.encodeString(JSON.stringify({
+                                full_name: me.state.full_name,
+                                description: me.state.description,
+                                admin_addresses: [key.privateKey.toAddress().toString()]
+
+                            })), info.version);
+                        transaction.key = key;
+
+                        var signer = new openChain.MutationSigner(transaction.key);
+
+                        transaction.addSigningKey(signer).submit()
+                        .then(function (response) {
+                            me.setState({ savingData: false });
+                            $scope.transactionHash = response["transaction_hash"];
+                            $scope.mutationHash = response["mutation_hash"];
+                        }, function (response) {
+                            var error = "failed to save : ";
+
+                            if (response.statusCode == 400) {
+                                error += response.data["error_code"];
+                            }
+
+                            me.setState({ error_text: error });
+                            me.setState({ savingData: false });
+                        });
+
+                    } else {
+                        request
+                        //.post('/api/Community/' + me.state.handle)
+                        .put('/api/Community/' + me.state.handle)
+                        .send({
+                            full_name: me.state.full_name,
+                            description: me.state.description,
+                            admin_addresses: [key.privateKey.toAddress().toString()]
+                        })
+                        //.set('X-API-Key', 'foobar')
+                        .set('Accept', 'application/json')
+                        .end(function (err, res) {
+                            if (err) {
+                                me.setState({ error_text: 'failed to save :' + err.message });
+                            }
+                            me.setState({ savingData: false });
+                        });
+
+                    }
+                }, function (err) {
+                    //openchain error handling sucks it never makes it here
+                    me.setState({ error_text: 'failed to save.  existance check failed : ' + err.message });
                     me.setState({ savingData: false });
-                    return;
+                });
 
-                    var transaction = new openChain.TransactionBuilder(apiClent);
-                    transaction.addRecord(info.key,
-                        openChain.encoding.encodeString('test data'), info.version);
-                    transaction.key = key;
-
-                    var signer = new openChain.MutationSigner(transaction.key);
-
-                    transaction.addSigningKey(signer).submit()
-                    .then(function (response) {
-                        me.setState({ savingData: false });
-                        $scope.transactionHash = response["transaction_hash"];
-                        $scope.mutationHash = response["mutation_hash"];
-                    }, function (response) {
-                        var error = "failed to save : ";
-
-                        if (response.statusCode == 400) {
-                            error += response.data["error_code"];
-                        }
-
-                        me.setState({ error_text: error });
-                        me.setState({ savingData: false });
-                    });
-
-                } else {
-                    request
-                    //.post('/api/Community/' + me.state.handle)
-                    .put('/api/Community/' + me.state.handle)
-                    .send({
-                        full_name: me.state.full_name,
-                        description: me.state.description,
-                        admin_addresses: [key.privateKey.toAddress().toString()]
-                    })
-                    //.set('X-API-Key', 'foobar')
-                    .set('Accept', 'application/json')
-                    .end(function (err, res) {
-                        if (err) {
-                            me.setState({ error_text: 'failed to save :' + err.message });
-                        }
-                        me.setState({ savingData: false });
-                    });
-
-                }
-            }, function (err) {
-                //openchain error handling sucks it never makes it here
-                me.setState({ error_text: 'failed to save.  existance check failed : ' + err.message });
-                me.setState({ savingData: false });
             });
-
-
         });
 
 

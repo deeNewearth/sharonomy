@@ -23,6 +23,12 @@ namespace web.Converters
         }
     }
 
+    public class DisplayableException : Exception
+    {
+        public DisplayableException(String message) : base(message) { }
+    }
+
+
     class ErrorResponse
     {
         public String message { get; set; }
@@ -36,7 +42,7 @@ namespace web.Converters
             int statusCode = 500;
             var response = new ErrorResponse
             {
-                message = "Failed to process",
+                message = (context.Exception is DisplayableException) ? context.Exception.Message: "Failed to process",
                 errors = new Dictionary<string, string>()
             };
 

@@ -68,6 +68,8 @@ module.exports = React.createClass({
         //I don't think we need that any more
         //hdPrivateKey.network = bitcore.Networks.get("openchain");
 
+        var pubKeyfortest = hdPrivateKey.privateKey.toAddress().toString();
+
 
         this.setState({ showModal: false });
         this.clearState();

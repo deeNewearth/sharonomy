@@ -66,7 +66,7 @@ module.exports = React.createClass({
                 return;
             }
             request
-            .get('/api/User/' + pattern)
+            .get('/api/User/' + apiService.getCommunityHandle() + '/' + pattern)
             .set('Accept', 'application/json')
             .end(function (err, res) {
                 if (err)

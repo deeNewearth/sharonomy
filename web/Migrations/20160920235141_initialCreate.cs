@@ -12,6 +12,7 @@ namespace web.Migrations
                 name: "Users",
                 columns: table => new
                 {
+                    communityHandle = table.Column<string>(maxLength: 25, nullable: false),
                     handle = table.Column<string>(maxLength: 25, nullable: false),
                     address = table.Column<string>(maxLength: 1024, nullable: false),
                     avatar = table.Column<string>(maxLength: 512, nullable: true),
@@ -21,8 +22,8 @@ namespace web.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Users", x => x.handle);
-                    table.UniqueConstraint("AK_Users_email", x => x.email);
+                    table.PrimaryKey("PK_Users", x => new { x.communityHandle, x.handle });
+                    table.UniqueConstraint("AK_Users_communityHandle_email", x => new { x.communityHandle, x.email });
                 });
         }
 

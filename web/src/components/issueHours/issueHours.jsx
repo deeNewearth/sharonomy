@@ -103,7 +103,7 @@ module.exports = React.createClass({
             {
                 this.state.receivers.map(function (rec, i) {
                 return (
-                <Row key={i} style={{ margin: '10px 0px' } }>
+                <Row key={i} >
                     
                     <Column xs={4} className="text-center">
                         <div style={{ border: 'solid 1px #ddd', padding: '5px' } }>
@@ -163,7 +163,7 @@ module.exports = React.createClass({
             </Grid>);
         
         return (
-            <div className="container">
+            <div>
                 <div>Navigation : <Link to="/edit">edit</Link></div>
 
                 <div className="well">

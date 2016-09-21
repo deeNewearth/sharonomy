@@ -24,13 +24,7 @@ namespace web.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
-            modelBuilder.Entity<User>()
-                .HasKey(c => new { c.handle });
-            
-            modelBuilder.Entity<User>()
-                .HasAlternateKey(c => new { c.email });
-
+            User.OnModelBuilding(modelBuilder);
         }
 
     }

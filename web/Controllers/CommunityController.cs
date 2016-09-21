@@ -17,7 +17,7 @@ namespace web.Controllers
         // corresponding address is "XiqvPB63hh8TML2iWYGDvF7i3HXRxqv3nN" : add this address to admin list in openchain server config.json
 
         const string communityadmin = "educate mutual festival portion card pink divide same cart soon pony wasp";
-        //address is XuvjuhA6uU77KwvUEJ8oHnkRJnV1RnsCyi
+        //address is XvQqwAHFK1yDYpcf88kmV8S2mWLSC3mLGA
 
         // GET: api/values
         [HttpGet]
