@@ -11,23 +11,40 @@ require('./assets/customPositions.css');
 
 var editCommunity = require('./components/editCommunity');
 var communityIssue = require('./components/issueHours/issueHours');
+var ChooseCommunity = require('./components/chooseCommunity');
+
+
+var MainLayout = require('./layouts/main');
 
 
 var Signin = require('./signin');
 var testComp = require('./body');
 
 var Wrapper = React.createClass({
+    getInitialState() {
+        return {};
+    },
+
+    onCommunitySelected(e) {
+        this.setState({ communityHandle: e });
+    },
+
     render: function() {
         return (
     <div>
-        <h1>Site banner</h1>
-        
         <Signin/>
-        <Router history={browserHistory}>
-            <Route path="/" component={communityIssue}/>
-            <Route path="edit" component={editCommunity}/>
-            <Route path="test" component={testComp}/>
+        {this.state.communityHandle?
+        <Router history={browserHistory} >
+            <Route component={MainLayout}>
+                <Route path="/" component={communityIssue}/>
+                <Route path="edit" component={editCommunity}/>
+                <Route path="test" component={testComp}/>
+            </Route>
         </Router>
+
+        : <ChooseCommunity onSelected={this.onCommunitySelected}/>
+    
+        }
     </div>
         );
 }

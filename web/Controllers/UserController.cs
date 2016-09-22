@@ -13,10 +13,6 @@ namespace web.Controllers
     [Route("api/[controller]")]
     public class UserController : Controller
     {
-        //const String _communityOcUrl = "http://localhost:63154/";
-        const String _communityOcUrl = "http://localhost:8090/site1/";
-
-
         private Models.CommunityContext _dbContext;
         public UserController(Models.CommunityContext dbContext)
         {
@@ -66,8 +62,10 @@ namespace web.Controllers
                 _dbContext.Users.Add(req.user);
                 await _dbContext.SaveChangesAsync();
 
+                var community = _dbContext.Communities.Single(c => c.handle == req.user.communityHandle);
+
                 cli.Timeout = TimeSpan.FromHours(1);
-                var query = $"{_communityOcUrl}submit";
+                var query = $"{community.OCUrl}submit";
                 var tresult = await cli.PostAsync(query,
                             new ByteArrayContent(Encoding.UTF8.GetBytes(j.ToString(Newtonsoft.Json.Formatting.None))));
 

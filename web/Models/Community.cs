@@ -9,7 +9,7 @@ namespace web.Models
     /// <summary>
     /// Keeps track of community in the database
     /// </summary>
-    public class Community
+    public class Community : OCCommunityInfo
     {
         [Required]
         [StringLength(25)]
@@ -21,6 +21,10 @@ namespace web.Models
         [Required]
         [StringLength(128)]
         public string OCUrl { get; set; }
+
+        [StringLength(512)]
+        [JsonConverter(typeof(Converters.mediaConverter))]
+        public string avatar { get; set; }
 
         internal static void OnModelBuilding(ModelBuilder modelBuilder)
         {

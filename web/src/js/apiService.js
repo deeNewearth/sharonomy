@@ -5,21 +5,21 @@ var PubSub = require('pubsub-js');
 
 var _rootKey = null;
 var _apiClientPromise = null;
-
-//const _communityOcUrl = 'http://localhost:63154/';
-const _communityOcUrl = 'http://localhost:8090/site1';
-const _CommunityHandle = 'san_marcos_lake_atitlan';
-const _theAsset = '/asset/san_marcos_hours/';
-
+var _Community = null;
 
 module.exports = {
-    getCommunityHandle() { return _CommunityHandle; },
-    getAssetName() { return _theAsset; },
+    setCommunity(c) {
+        _Community = c;
+    },
+    getCommunity(){return _Community;},
+    getCommunityHandle() { return _Community.handle; },
+    getAssetName() { return '/asset/' + _Community.handle + '_hours/'; },
+    getTreasuryAccount() { return '/treasury/' + _Community.handle + '_hours/'; },
     ensureAPIClient() {
 
         if (!_apiClientPromise) {
             _apiClientPromise = new RSVP.Promise(function (resolve, reject) {
-                var apiClient = new openChain.ApiClient(_communityOcUrl);
+                var apiClient = new openChain.ApiClient(_Community.ocUrl);
                 apiClient.initialize()
                 .then(function (success) {
                     resolve(apiClient);

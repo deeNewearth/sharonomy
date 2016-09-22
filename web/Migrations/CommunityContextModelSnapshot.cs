@@ -25,6 +25,17 @@ namespace web.Migrations
                         .IsRequired()
                         .HasAnnotation("MaxLength", 128);
 
+                    b.Property<string>("avatar")
+                        .HasAnnotation("MaxLength", 512);
+
+                    b.Property<string>("description")
+                        .IsRequired()
+                        .HasAnnotation("MaxLength", 1024);
+
+                    b.Property<string>("full_name")
+                        .IsRequired()
+                        .HasAnnotation("MaxLength", 255);
+
                     b.HasKey("handle");
 
                     b.ToTable("Communities");

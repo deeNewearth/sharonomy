@@ -17,8 +17,21 @@ module.exports = React.createClass({
         var me = this;
         this.pubSub_LGIN_NEEDED_token = PubSub.subscribe('LOGIN NEEDED', function (msg, data) {
             me.pubKeyCallBack = data;
-            me.setState({ showModal: true });
+
+
+            if (typeof (localStorage) !== "undefined") {
+                var stored = localStorage.getItem("myKey");
+                if (stored) {
+                    me.pubKeyCallBack.success_callback(new bitcore.HDPrivateKey(stored));
+                }
+            } else {
+                me.setState({ showModal: true });
+            }
+
+            
         });
+
+        
     },
     componentWillUnmount() {
         PubSub.unsubscribe(this.pubSub_LGIN_NEEDED_token);
@@ -63,6 +76,9 @@ module.exports = React.createClass({
         and run npm install
         */
         var derivedKey = code.toHDPrivateKey(null, "livenet");
+        if (typeof (localStorage) !== "undefined") {
+            localStorage.setItem("myKey", derivedKey.xprivkey);
+        }
         var hdPrivateKey = new bitcore.HDPrivateKey(derivedKey.xprivkey);
 
         //I don't think we need that any more
@@ -74,6 +90,8 @@ module.exports = React.createClass({
         this.setState({ showModal: false });
         this.clearState();
         this.pubKeyCallBack.success_callback(hdPrivateKey);
+
+        
 
     },
 

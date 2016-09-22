@@ -30,24 +30,23 @@ namespace web.Controllers
         }
 
 
-        // GET: api/values
-        [HttpGet]
-        public IEnumerable<string> Get()
+
+        [HttpGet("{pattern}")]
+        public IEnumerable<Models.Community> Get(String pattern)
         {
-            return new string[] { "value1", "value2" };
+            var ret = _dbContext.Communities
+                .Where(u => 
+                    (u.handle.Contains(pattern) || u.full_name.Contains(pattern)
+                    )
+                ).Distinct().Take(10).ToArray();
+
+            return ret;
         }
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
-        }
-
-
+        
         [HttpPut("{handle}")]
         [Converters.UniqueViolation("PK_Communities", "handle", "This community handle is already taken")]
-        public async Task<Models.OCCommunityInfo> Put(String handle, [FromBody]Models.UpdateCommunityReq req)
+        public async Task<Models.Community> Put(String handle, [FromBody]Models.UpdateCommunityReq req)
         {
 
             using (var transaction = _dbContext.Database.BeginTransaction())
@@ -57,6 +56,8 @@ namespace web.Controllers
                 {
                     handle = handle,
                     OCUrl = $"{_ocURLBase}{handle}/",
+                    description = req.description,
+                    full_name = req.full_name
                 };
 
                 _dbContext.Communities.Add(newCommunity);
@@ -110,23 +111,24 @@ namespace web.Controllers
                                 addresses = new String[]  {req.adminPubKey },
                                 required =1 }
                             },
-                            permissions = new {account_create="Permit",account_modify="Permit",account_spend="Permit"}
+                            permissions = (object)new {account_create="Permit",account_modify="Permit",account_spend="Permit"}
                         },
                         new {
                             subjects = new [] { new {
                                 addresses = new String[] { },
                                 required =0 }
                             },
-                            permissions = new {account_create="",account_modify="Permit",account_spend=""}
+                            permissions = (object) new {account_modify="Permit"}
                         },
 
                     });
 
                 }
                 transaction.Commit();
+                return newCommunity;
             }
 
-            return req;
+            
 
         }
 

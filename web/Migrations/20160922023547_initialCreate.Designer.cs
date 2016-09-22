@@ -8,7 +8,7 @@ using web.Models;
 namespace web.Migrations
 {
     [DbContext(typeof(CommunityContext))]
-    [Migration("20160921184201_initialCreate")]
+    [Migration("20160922023547_initialCreate")]
     partial class initialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,17 @@ namespace web.Migrations
                     b.Property<string>("OCUrl")
                         .IsRequired()
                         .HasAnnotation("MaxLength", 128);
+
+                    b.Property<string>("avatar")
+                        .HasAnnotation("MaxLength", 512);
+
+                    b.Property<string>("description")
+                        .IsRequired()
+                        .HasAnnotation("MaxLength", 1024);
+
+                    b.Property<string>("full_name")
+                        .IsRequired()
+                        .HasAnnotation("MaxLength", 255);
 
                     b.HasKey("handle");
 

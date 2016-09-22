@@ -13,7 +13,10 @@ namespace web.Migrations
                 columns: table => new
                 {
                     handle = table.Column<string>(maxLength: 25, nullable: false),
-                    OCUrl = table.Column<string>(maxLength: 128, nullable: false)
+                    OCUrl = table.Column<string>(maxLength: 128, nullable: false),
+                    avatar = table.Column<string>(maxLength: 512, nullable: true),
+                    description = table.Column<string>(maxLength: 1024, nullable: false),
+                    full_name = table.Column<string>(maxLength: 255, nullable: false)
                 },
                 constraints: table =>
                 {

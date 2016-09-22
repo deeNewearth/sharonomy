@@ -14,7 +14,6 @@ var RSVP = require('rsvp');
 
 var bizValidator = require('../js/bizValidator');
 var apiService = require('../js/apiService');
-var browserHistory = require('react-router').browserHistory;
 
 module.exports = React.createClass({
     mixins: [LoggerMixin],
@@ -90,7 +89,9 @@ module.exports = React.createClass({
                         reject(err);
                     } else {
                         resolve();
-                        browserHistory.push('/');
+                        if (me.props.onDone) {
+                            me.props.onDone(res.body);
+                        }
                     }
                 });
 
@@ -207,6 +208,12 @@ module.exports = React.createClass({
             this.state.saveProgress ?
                                 <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i> : ''
             }
+        </Button>
+
+        <Button  bsStyle="warning" style={{marginLeft:'10px'}}
+                    onClick={this.props.onCancel}
+                    disabled={this.state.saveProgress}>
+            Cancel
         </Button>
 
      </form>

@@ -1,7 +1,6 @@
 ﻿'use strict';
 var React = require('react');
 
-var Link = require('react-router').Link;
 
 var Grid = require('react-bootstrap').Grid;
 var Row = require('react-bootstrap').Row;
@@ -20,10 +19,15 @@ var Glyphicon = require('react-bootstrap').Glyphicon;
 
 var NewReceiver = require('./newReceiver');
 
+var apiService = require('../../js/apiService');
+var openChain = require('openchain');
+var RSVP = require('rsvp');
+var Long = require('Long');
+
 
 
 module.exports = React.createClass({
-    getInitialState() {
+    clearAll() {
         return {
             receivers: [],
             description: '',
@@ -31,6 +35,9 @@ module.exports = React.createClass({
             selectedReceiver: {},
             errors: {}
         };
+    },
+    getInitialState() {
+        return this.clearAll();
     },
     OnDescriptionChange(e) {
         if (this.state.savingData)
@@ -86,6 +93,55 @@ module.exports = React.createClass({
             return;
 
         this.setState({ savingData: true });
+
+        var me = this;
+        RSVP.hash({
+            key: apiService.getKeyAync(),
+            apiClent: apiService.ensureAPIClient()
+        })
+
+        .then(function (results) {
+            var transaction = new openChain.TransactionBuilder(results.apiClent);
+            transaction.key = results.key;
+
+            var records = [transaction];
+            me.state.receivers.map(function (rec, i) {
+                records.push(transaction.updateAccountRecord(
+                    '/aka/'+rec.user.handle+'/',
+                    apiService.getAssetName(),
+                    Long.fromString(rec.hours)));
+                records.push(transaction.updateAccountRecord(
+                    apiService.getTreasuryAccount(),
+                    apiService.getAssetName(),
+                    Long.fromString('-' +rec.hours)));
+            });
+
+            return RSVP.all(records);
+        })
+
+        .then(function (results) {
+            var transaction = results[0];
+
+            var signer = new openChain.MutationSigner(transaction.key);
+            transaction.addSigningKey(signer);
+
+            return transaction.submit();
+        })
+
+        .then(function (results) {
+            me.setState(me.clearAll());
+        })
+
+        .catch(function (err) {
+            me.setState({ errors: { form :'failed to issue :' + err.data.error_code} });
+        })
+
+        .finally(function () {
+            me.setState({ savingData: false });
+        })
+
+        ;
+
     },
     
 
@@ -164,8 +220,6 @@ module.exports = React.createClass({
         
         return (
             <div>
-                <div>Navigation : <Link to="/edit">edit</Link></div>
-
                 <div className="well">
                     <h4>Recepients :</h4>{recepientTable}
                 </div>
