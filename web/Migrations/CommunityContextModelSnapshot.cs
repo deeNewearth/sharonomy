@@ -16,6 +16,20 @@ namespace web.Migrations
                 .HasAnnotation("ProductVersion", "1.0.0-rtm-21431")
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
+            modelBuilder.Entity("web.Models.Community", b =>
+                {
+                    b.Property<string>("handle")
+                        .HasAnnotation("MaxLength", 25);
+
+                    b.Property<string>("OCUrl")
+                        .IsRequired()
+                        .HasAnnotation("MaxLength", 128);
+
+                    b.HasKey("handle");
+
+                    b.ToTable("Communities");
+                });
+
             modelBuilder.Entity("web.Models.User", b =>
                 {
                     b.Property<string>("communityHandle")
@@ -46,7 +60,17 @@ namespace web.Migrations
 
                     b.HasAlternateKey("communityHandle", "email");
 
+                    b.HasIndex("communityHandle");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("web.Models.User", b =>
+                {
+                    b.HasOne("web.Models.Community", "community")
+                        .WithMany()
+                        .HasForeignKey("communityHandle")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
         }
     }

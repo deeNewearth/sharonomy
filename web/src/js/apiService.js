@@ -6,7 +6,8 @@ var PubSub = require('pubsub-js');
 var _rootKey = null;
 var _apiClientPromise = null;
 
-const _communityOcUrl = 'http://localhost:63154/';
+//const _communityOcUrl = 'http://localhost:63154/';
+const _communityOcUrl = 'http://localhost:8090/site1';
 const _CommunityHandle = 'san_marcos_lake_atitlan';
 const _theAsset = '/asset/san_marcos_hours/';
 

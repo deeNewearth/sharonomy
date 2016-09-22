@@ -54,15 +54,32 @@ namespace web
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            app.UseApplicationInsightsRequestTelemetry();
+            //            app.UseApplicationInsightsRequestTelemetry();
+            //            app.UseApplicationInsightsExceptionTelemetry();
 
-            app.UseApplicationInsightsExceptionTelemetry();
+            app.UseStatusCodePagesWithReExecute("/");
 
             app.UseMvc();
 
             app.UseDefaultFiles();
 
             app.UseStaticFiles();
+
+            /*
+            // Route all unknown requests to app root
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                // If there's no available file and the request doesn't contain an extension, we're probably trying to access a page.
+                // Rewrite request to use app root
+                if (context.Response.StatusCode == 404 && !System.IO.Path.HasExtension(context.Request.Path.Value))
+                {
+                    context.Request.Path = "/"; // Put your Angular root page here 
+                    await next();
+                }
+            });
+            */
         }
     }
 }

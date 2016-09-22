@@ -21,10 +21,12 @@ namespace web.Models
 
         
         public DbSet<User> Users { get; set; }
+        public DbSet<Community> Communities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             User.OnModelBuilding(modelBuilder);
+            Community.OnModelBuilding(modelBuilder);
         }
 
     }

@@ -43,6 +43,10 @@ namespace web.Models
         [JsonConverter(typeof(Converters.mediaConverter))]
         public string avatar { get; set; }
 
+        [JsonIgnore]
+        [ForeignKey("communityHandle")]
+        public Community community { get; set; }
+
         internal static void OnModelBuilding(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()

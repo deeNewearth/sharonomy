@@ -27,7 +27,7 @@ namespace web.Controllers
             var m = Openchain.MessageSerializer.DeserializeMutation(hex);
 
             var record = m.Records.First();
-            var g1 = new OpenChain.Client.DecodedRecord<Models.CommunityInfo>(record);
+            var g1 = new OpenChain.Client.DecodedRecord<Models.Community>(record);
             var g3 = g1;
 
             /*

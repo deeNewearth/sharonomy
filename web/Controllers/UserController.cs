@@ -13,11 +13,11 @@ namespace web.Controllers
     [Route("api/[controller]")]
     public class UserController : Controller
     {
-        const String _communityOcUrl = "http://localhost:63154/";
+        //const String _communityOcUrl = "http://localhost:63154/";
+        const String _communityOcUrl = "http://localhost:8090/site1/";
 
 
         private Models.CommunityContext _dbContext;
-
         public UserController(Models.CommunityContext dbContext)
         {
             _dbContext = dbContext;
@@ -60,8 +60,12 @@ namespace web.Controllers
 
             var j = Newtonsoft.Json.Linq.JObject.FromObject(req.transaction);
 
+            using (var transaction = _dbContext.Database.BeginTransaction())
             using (var cli = new HttpClient())
             {
+                _dbContext.Users.Add(req.user);
+                await _dbContext.SaveChangesAsync();
+
                 cli.Timeout = TimeSpan.FromHours(1);
                 var query = $"{_communityOcUrl}submit";
                 var tresult = await cli.PostAsync(query,
@@ -71,19 +75,19 @@ namespace web.Controllers
                 var obj = Newtonsoft.Json.Linq.JObject.Parse(s);
                 if (tresult.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    throw new Converters.DisplayableException("chain error : " +(string)obj["error_code"]);
+                    throw new Converters.DisplayableException("chain error : " + (string)obj["error_code"]);
                 }
 
-                var ocTransaction =new
+                var ocTransaction = new
                 {
                     MutationHash = Openchain.ByteString.Parse((string)obj["mutation_hash"]),
                     TransactionHash = Openchain.ByteString.Parse((string)obj["transaction_hash"])
                 };
+
+                transaction.Commit();
             }
 
-
-            _dbContext.Users.Add(req.user);
-            _dbContext.SaveChanges();
+            
             return req.user;
         }
 
