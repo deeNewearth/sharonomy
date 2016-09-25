@@ -10,15 +10,19 @@ require('./assets/font-awesome-4.6.3/css/font-awesome.css');
 require('./assets/customPositions.css');
 
 var editCommunity = require('./components/editCommunity');
-var communityIssue = require('./components/issueHours/issueHours');
 var ChooseCommunity = require('./components/chooseCommunity');
 
-
-var MainLayout = require('./layouts/main');
-
+var MyBody = require('./body');
 
 var Signin = require('./signin');
-var testComp = require('./body');
+var MainLayout = require('./layouts/main');
+
+var CommunityIssue = require('./components/issueHours/issueHours');
+var ShowTransaction = require('./components/issueHours/showTransaction');
+
+
+
+//var testComp = require('./components/recentIssues');
 
 var Wrapper = React.createClass({
     getInitialState() {
@@ -33,17 +37,17 @@ var Wrapper = React.createClass({
         return (
     <div>
         <Signin/>
-        {this.state.communityHandle?
-        <Router history={browserHistory} >
-            <Route component={MainLayout}>
-                <Route path="/" component={communityIssue}/>
-                <Route path="edit" component={editCommunity}/>
-                <Route path="test" component={testComp}/>
-            </Route>
-        </Router>
-
-        : <ChooseCommunity onSelected={this.onCommunitySelected}/>
-    
+        {
+            this.state.communityHandle?
+            <Router history={browserHistory} >
+                <Route component={MainLayout}>
+                    <Route path="/" component={CommunityIssue}/>
+                    <Route path="/issue" component={CommunityIssue}/>
+                    <Route path="transaction/:mutationHash" component={ShowTransaction}/>
+                </Route>
+            </Router>
+            :
+            <ChooseCommunity onSelected={this.onCommunitySelected}/>
         }
     </div>
         );

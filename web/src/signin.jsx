@@ -18,17 +18,15 @@ module.exports = React.createClass({
         this.pubSub_LGIN_NEEDED_token = PubSub.subscribe('LOGIN NEEDED', function (msg, data) {
             me.pubKeyCallBack = data;
 
-
             if (typeof (localStorage) !== "undefined") {
                 var stored = localStorage.getItem("myKey");
                 if (stored) {
                     me.pubKeyCallBack.success_callback(new bitcore.HDPrivateKey(stored));
+                    return;
                 }
-            } else {
-                me.setState({ showModal: true });
-            }
+            } 
 
-            
+            me.setState({ showModal: true });
         });
 
         

@@ -24,6 +24,7 @@
     "bootstrap": "^3.3.7",
     "fetch": "^1.1.0",
     "lodash": "^4.15.0",
+    "moment": "^2.15.1",
     "openchain": "~0.2.3",
     "pubsub-js": "^1.5.3",
     "react": "^15.3.1",
@@ -34,6 +35,7 @@
     "react-geosuggest": "^1.25.0",
     "react-logger": "^1.1.0",
     "react-router": "^2.7.0",
+    "react-router-bootstrap": "^0.23.1",
     "rsvp": "^3.2.1",
     "superagent": "^2.2.0"
   }
