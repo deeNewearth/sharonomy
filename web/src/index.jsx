@@ -3,6 +3,7 @@ var ReactDOM = require('react-dom');
 var Router = require('react-router').Router;
 var Route = require('react-router').Route;
 var browserHistory = require('react-router').browserHistory;
+var PubSub = require('pubsub-js');
 
 
 require('bootstrap/dist/css/bootstrap.css');
@@ -21,7 +22,6 @@ var CommunityIssue = require('./components/issueHours/issueHours');
 var ShowTransaction = require('./components/issueHours/showTransaction');
 
 
-
 //var testComp = require('./components/recentIssues');
 
 var Wrapper = React.createClass({
@@ -31,6 +31,16 @@ var Wrapper = React.createClass({
 
     onCommunitySelected(e) {
         this.setState({ communityHandle: e });
+    },
+
+    componentWillMount() {
+        var me = this;
+        this.pubSub_token = PubSub.subscribe('SIGNEDOUT', function (msg, data) {
+            me.setState({ communityHandle: null });
+        });
+    },
+    componentWillUnmount() {
+        PubSub.unsubscribe(this.pubSub_token);
     },
 
     render: function() {

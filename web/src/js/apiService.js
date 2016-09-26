@@ -8,6 +8,15 @@ var _apiClientPromise = null;
 var _Community = null;
 
 module.exports = {
+    signOut() {
+        _rootKey = null;
+        _apiClientPromise = null;
+        _Community = null;
+        if (typeof (localStorage) !== "undefined") {
+            localStorage.clear();
+        }
+        PubSub.publish('SIGNEDOUT');
+    },
     setCommunity(c) {
         _Community = c;
     },

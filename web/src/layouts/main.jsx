@@ -7,6 +7,8 @@ var Navbar = require('react-bootstrap').Navbar;
 var LinkContainer = require('react-router-bootstrap').LinkContainer;
 var Nav = require('react-bootstrap').Nav;
 var NavItem = require('react-bootstrap').NavItem;
+var apiService = require('../js/apiService');
+
 
 module.exports = React.createClass({
     render() {
@@ -26,6 +28,8 @@ module.exports = React.createClass({
                          <LinkContainer to="/issue">
                             <NavItem eventKey={1} >Issue</NavItem>
                         </LinkContainer>
+
+                        <NavItem eventKey={2} onClick={apiService.signOut}>Sign out</NavItem>
                         
                     </Nav>
                   </Navbar.Collapse>
