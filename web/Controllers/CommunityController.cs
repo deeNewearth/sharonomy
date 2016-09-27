@@ -17,8 +17,6 @@ namespace web.Controllers
         const String _siteCreatorURL = @"http://localhost:9085";
         const String _ocURLBase = @"http://localhost:8090/";
 
-        const string admin = "combat pélican gagner bateau caporal infini charbon neutron détester menhir causer espoir carbone saugrenu obscur inexact torrent rayonner laisser relief féroce honteux cirer époque";
-        // corresponding address is "XiqvPB63hh8TML2iWYGDvF7i3HXRxqv3nN" : add this address to admin list in openchain server config.json
 
         const string communityadmin = "educate mutual festival portion card pink divide same cart soon pony wasp";
         //address is XvQqwAHFK1yDYpcf88kmV8S2mWLSC3mLGA
@@ -74,7 +72,7 @@ namespace web.Controllers
                 var s = await tresult.Content.ReadAsStringAsync();
 
                 var ocs = new OpenChainServer(newCommunity.OCUrl);
-                using (var ad = ocs.Login(admin))
+                using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
                 {
                     var ir = await ocs.GetData<LedgerInfo>("/", "info");
                     ir.Value = new LedgerInfo { Name = req.full_name, TermsOfService=req.description };
@@ -132,7 +130,7 @@ namespace web.Controllers
 
         }
 
-        static async Task setACL<T>(OpenChainSession ad, String assetPath, T acl) where T:class
+        static internal async Task setACL<T>(OpenChainSession ad, String assetPath, T acl) where T:class
         {
             var assetACL = await ad.GetData<T>(assetPath, "acl");
             assetACL.Value = acl;

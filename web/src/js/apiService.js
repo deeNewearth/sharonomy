@@ -3,13 +3,13 @@ var openChain = require('openchain');
 var RSVP = require('rsvp');
 var PubSub = require('pubsub-js');
 
-var _rootKey = null;
+var _signinDefPromise = null;
 var _apiClientPromise = null;
 var _Community = null;
 
 module.exports = {
     signOut() {
-        _rootKey = null;
+        _signinDefPromise = null;
         _apiClientPromise = null;
         _Community = null;
         if (typeof (localStorage) !== "undefined") {
@@ -92,25 +92,25 @@ module.exports = {
 
         return _apiClientPromise;
     },
-    getKeyAync() {
+    getcredsAync() {
         var me = this;
-        return new RSVP.Promise(function(resolve, reject) {
-            if (_rootKey) {
-                resolve(_rootKey);
-                return;
-            }
+        if (null == _signinDefPromise) {
+            _signinDefPromise = new RSVP.Promise(function(resolve, reject) {
 
-            PubSub.publish('LOGIN NEEDED', {
-                success_callback: function (key) {
-                    _rootKey = key;
-                    resolve(_rootKey);
-                },
-                error_callback: function (error) {
-                    reject(error);
-                }
+                PubSub.publish('LOGIN NEEDED', {
+                    success_callback: function (res) {
+                        resolve(res);
+                    },
+                    error_callback: function (error) {
+                        reject(error);
+                    }
+                });
+
             });
+        }
 
-        });
+        return _signinDefPromise;
+        
     }
     
     

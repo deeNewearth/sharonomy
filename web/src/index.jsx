@@ -20,6 +20,7 @@ var MainLayout = require('./layouts/main');
 
 var CommunityIssue = require('./components/issueHours/issueHours');
 var ShowTransaction = require('./components/issueHours/showTransaction');
+var Spend = require('./components/spend');
 
 
 //var testComp = require('./components/recentIssues');
@@ -51,7 +52,7 @@ var Wrapper = React.createClass({
             this.state.communityHandle?
             <Router history={browserHistory} >
                 <Route component={MainLayout}>
-                    <Route path="/" component={CommunityIssue}/>
+                    <Route path="/" component={Spend}/>
                     <Route path="/issue" component={CommunityIssue}/>
                     <Route path="transaction/:mutationHash" component={ShowTransaction}/>
                 </Route>

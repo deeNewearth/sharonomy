@@ -99,13 +99,13 @@ module.exports = React.createClass({
 
         var me = this;
         RSVP.hash({
-            key: apiService.getKeyAync(),
+            key: apiService.getcredsAync(),
             apiClent: apiService.ensureAPIClient()
         })
 
         .then(function (results) {
             var transaction = new openChain.TransactionBuilder(results.apiClent);
-            transaction.key = results.key;
+            transaction.key = results.key.hdPrivateKey;
             transaction.setMetadata({creator:'sharonomy',description:me.state.description});
 
             var records = [transaction];

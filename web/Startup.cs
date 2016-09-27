@@ -8,13 +8,38 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 namespace web
 {
     public class Startup
     {
+        readonly RsaSecurityKey key;
+        readonly Controllers.TokenAuthOptions tokenOptions;
+        const string TokenAudience = "SharonomyAudience";
+        const string TokenIssuer = "SharonomyIssuer";
+
         public Startup(IHostingEnvironment env)
         {
+
+            // See the RSAKeyUtils.GetKeyParameters method for an examle of loading from
+            // a JSON file.
+            RSAParameters keyParams = RSAKeyUtils.GetRandomKey();
+            key = new RsaSecurityKey(keyParams);
+            tokenOptions = new Controllers.TokenAuthOptions()
+            {
+                Audience = TokenAudience,
+                Issuer = TokenIssuer,
+                SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256Signature)
+            };
+
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -35,14 +60,33 @@ namespace web
         // This method gets called by the runtime. Use this method to add services to the container
         public void ConfigureServices(IServiceCollection services)
         {
+
             // Add framework services.
             services.AddApplicationInsightsTelemetry(Configuration);
 
-            var builder = services.AddMvc();
+           var builder = services.AddMvc();
 
             builder.AddMvcOptions(o => { o.Filters.Add(new Converters.GlobalExceptionFilter()); });
 
-            //services.AddScoped<Converters.CustomOneLoggingExceptionFilter>();
+            
+            services.AddSingleton<Controllers.TokenAuthOptions>(tokenOptions);
+
+
+            
+            services.AddAuthorization(options =>
+            {
+
+                //Default User Authorization Policy
+                options.DefaultPolicy = new AuthorizationPolicyBuilder()
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser()
+                .Build();
+
+
+                options.AddPolicy("DisneyUser",
+                      policy => policy.RequireClaim("DisneyCharacter", "IAmMickey").RequireAuthenticatedUser());
+            });
+            
 
             var connection = @"Server = (localdb)\mssqllocaldb; Database = sharonomy; Trusted_Connection = True; ";
             services.AddDbContext<Models.CommunityContext>(options => options.UseSqlServer(connection));
@@ -57,29 +101,54 @@ namespace web
             //            app.UseApplicationInsightsRequestTelemetry();
             //            app.UseApplicationInsightsExceptionTelemetry();
 
-            app.UseStatusCodePagesWithReExecute("/");
+           
+
+            app.UseJwtBearerAuthentication(new JwtBearerOptions
+            {
+                // Basic settings - signing key to validate with, audience and issuer.
+                TokenValidationParameters = new TokenValidationParameters
+                {
+                    // The signing key must match!
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
+
+                    // Validate the JWT Issuer (iss) claim
+                    ValidateIssuer = true,
+                    ValidIssuer = tokenOptions.Issuer,
+
+                    // Validate the JWT Audience (aud) claim
+                    ValidateAudience = true,
+                    ValidAudience = tokenOptions.Audience,
+
+                    // Validate the token expiry
+                    ValidateLifetime = true,
+                    RequireExpirationTime = true,
+
+                    // If you want to allow a certain amount of clock drift, set that here:
+                    ClockSkew = TimeSpan.FromMinutes(1),
+
+                    AuthenticationType = JwtBearerDefaults.AuthenticationScheme,
+
+
+                },
+
+                
+
+
+                AutomaticAuthenticate = true,
+                AutomaticChallenge = true,
+
+
+            });
 
             app.UseMvc();
 
+            app.UseStatusCodePagesWithReExecute("/");
             app.UseDefaultFiles();
 
             app.UseStaticFiles();
 
-            /*
-            // Route all unknown requests to app root
-            app.Use(async (context, next) =>
-            {
-                await next();
-
-                // If there's no available file and the request doesn't contain an extension, we're probably trying to access a page.
-                // Rewrite request to use app root
-                if (context.Response.StatusCode == 404 && !System.IO.Path.HasExtension(context.Request.Path.Value))
-                {
-                    context.Request.Path = "/"; // Put your Angular root page here 
-                    await next();
-                }
-            });
-            */
+             
         }
     }
 }

@@ -49,6 +49,9 @@ namespace web.Migrations
                     b.Property<string>("handle")
                         .HasAnnotation("MaxLength", 25);
 
+                    b.Property<string>("ResetPin")
+                        .HasAnnotation("MaxLength", 50);
+
                     b.Property<string>("address")
                         .IsRequired()
                         .HasAnnotation("MaxLength", 1024);

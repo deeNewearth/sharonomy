@@ -211,7 +211,7 @@ module.exports = React.createClass({
 
 
         RSVP.hash({
-            key: apiService.getKeyAync(),
+            key: apiService.getcredsAync(),
             apiClent: apiService.ensureAPIClient()
         })
 
@@ -219,7 +219,7 @@ module.exports = React.createClass({
 
             return RSVP.hash({
                 info :results.apiClent.getDataRecord('/aka/' + me.state.handle + '/', 'info'),
-                key:results.key,
+                key: results.key.hdPrivateKey,
                 apiClent:results.apiClent
             });
         })

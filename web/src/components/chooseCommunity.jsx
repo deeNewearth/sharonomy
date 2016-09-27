@@ -11,12 +11,40 @@ var request = require('superagent');
 var EditCommunity = require('./editCommunity');
 var apiService = require('../js/apiService');
 
+require('superagent-auth-bearer')(request);
+
 
 module.exports = React.createClass({
     getInitialState() {
         return {}
     },
     componentWillMount () {
+
+        request
+            .post('/api/token')
+            .send({
+                username: 'TEST',
+                password: 'TEST'
+            })
+            .set('Accept', 'application/json')
+            .end(function (err, res) {
+                if (!err && res.body && res.body.authenticated) {
+
+                    request
+                    .get('/api/Token')
+                    .authBearer(res.body.token)
+                    .set('Accept', 'application/json')
+                    .end(function (err, res) {
+                        var t = err;
+                    });
+
+
+
+                }
+            });
+
+
+
         if (typeof (localStorage) !== "undefined") {
             var stored = localStorage.getItem("myCommunity");
             if (stored) {

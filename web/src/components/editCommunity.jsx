@@ -72,9 +72,9 @@ module.exports = React.createClass({
         me.setState({ saveProgress: true });
         me.validator.ProcessingErrors = {};
 
-        apiService.getKeyAync()
-        .then(function (key) {
-
+        apiService.getcredsAync()
+        .then(function (creds) {
+            var key = creds.hdPrivateKey;
             return new RSVP.Promise(function (resolve, reject) {
                 request
                 .put('/api/Community/' + me.state.handle)

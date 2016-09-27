@@ -13,6 +13,10 @@ namespace web.Models
         [Required]
         [StringLength(124)]
         public string email { get; set; }
+
+        [StringLength(50)]
+        [JsonIgnore]
+        public string ResetPin { get; set; }
     }
 
     /// <summary>
