@@ -15,7 +15,7 @@ var ChooseCommunity = require('./components/chooseCommunity');
 
 var MyBody = require('./body');
 
-var Signin = require('./signin');
+
 var MainLayout = require('./layouts/main');
 
 var CommunityIssue = require('./components/issueHours/issueHours');
@@ -47,7 +47,7 @@ var Wrapper = React.createClass({
     render: function() {
         return (
     <div>
-        <Signin/>
+        
         {
             this.state.communityHandle?
             <Router history={browserHistory} >

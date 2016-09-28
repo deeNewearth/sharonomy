@@ -8,7 +8,7 @@ var LinkContainer = require('react-router-bootstrap').LinkContainer;
 var Nav = require('react-bootstrap').Nav;
 var NavItem = require('react-bootstrap').NavItem;
 var apiService = require('../js/apiService');
-
+var Signin = require('../signin');
 
 module.exports = React.createClass({
     render() {
@@ -39,6 +39,8 @@ module.exports = React.createClass({
                 <h2>Site banner main layout</h2>
                 <CommunityBanner data={apiService.getCommunity()}/>
                 
+                <Signin/>
+
                 {this.props.children}
             </div>
             );

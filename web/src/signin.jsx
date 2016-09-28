@@ -19,6 +19,114 @@ var openChain = require('openchain');
 var Long = require('Long');
 
 module.exports = React.createClass({
+    handleToken (results) {
+        var me = this;
+
+        if (results.request.error || !results.request.body)
+            throw results.error||'failed to sign in';
+        results.request.body.hdPrivateKey = results.privateKey;
+        me.pubKeyCallBack.success_callback(results.request.body);
+                        
+    },
+
+    signinWithkey(community,hdPrivateKey) {
+        var me = this;
+        var pubKey = hdPrivateKey.privateKey.toAddress().toString();
+        return RSVP.hash({
+            myHandles :request
+                        .get('/api/token/myHandles/' + community.handle + '/' + pubKey)
+                        .set('Accept', 'application/json')
+                        .use(superThen).end(),
+            apiClient :apiService.ensureAPIClient()
+        })
+
+        .then(function (results) {
+                        
+            if (results.myHandles.error || !results.myHandles.body)
+                throw results.error||'failed to get handles';
+
+
+            var handles = results.myHandles.body;
+
+            if (Object.keys(handles).length ==0) {
+                throw 'no user found';
+            }
+
+            var retPromises = {};
+
+            Object.keys(handles).map(function (key) {
+                var transaction = new openChain.TransactionBuilder(results.apiClient);
+                transaction.key = hdPrivateKey;
+                            
+                retPromises[key] = transaction.updateAccountRecord(handles[key],
+                            apiService.getloginAssetName(), Long.fromString("0"));
+            });
+
+            return RSVP.hash(retPromises);
+        })
+                    
+        .then(function (results) {
+            var toSend = {};
+            var privateKey = null;
+
+            Object.keys(results).map(function (key) {
+                var transaction = results[key];
+                if (!privateKey)
+                    privateKey = transaction.key;
+                var signer = new openChain.MutationSigner(transaction.key);
+                transaction.addSigningKey(signer);
+
+
+                var mutation = transaction.build();
+                var signatures = [];
+
+                for (var i = 0; i < transaction.keys.length; i++) {
+                    signatures.push({
+                        signature: transaction.keys[i].sign(mutation).toHex(),
+                        pub_key: transaction.keys[i].publicKey.toHex()
+                    });
+                }
+
+                toSend[key + '_transaction'] = {
+                    mutation: mutation.toHex(),
+                    signatures: signatures
+                };
+            });
+
+            toSend.PubKey = pubKey;
+
+            return RSVP.hash({
+                request: request
+                    .post('/api/token/' + community.handle)
+                    .send(toSend)
+                    .set('Accept', 'application/json')
+                    .use(superThen).end(),
+                privateKey: privateKey
+            });
+
+        })
+
+        .then(me.handleToken);
+    },
+
+    signinWithReset(communityHandle, hdPrivateKey) {
+        var me = this;
+        var pubKey = hdPrivateKey.privateKey.toAddress().toString();
+        return RSVP.hash({
+            request: request
+                .post('/api/token/reset/' + communityHandle)
+                .send({
+                    email: me.state.email,
+                    pin: me.state.pin,
+                    PubKey: pubKey
+                })
+                .set('Accept', 'application/json')
+                .use(superThen).end(),
+            privateKey: hdPrivateKey
+        })
+        .then(me.handleToken);
+    },
+
     componentWillMount() {
         var me = this;
         this.pubSub_LGIN_NEEDED_token = PubSub.subscribe('LOGIN NEEDED', function (msg, data) {
@@ -30,90 +138,19 @@ module.exports = React.createClass({
             if (typeof (localStorage) !== "undefined" && community) {
                 var stored = localStorage.getItem("myKey");
                 if (stored) {
-                    var hdPrivateKey = new bitcore.HDPrivateKey(stored);
-                    var pubKey = hdPrivateKey.privateKey.toAddress().toString();
 
-                    RSVP.hash({
-                        myHandles :request
-                                    .get('/api/token/myHandles/' + community.handle + '/' + pubKey)
-                                    .set('Accept', 'application/json')
-                                    .use(superThen).end(),
-                        apiClient :apiService.ensureAPIClient()
-                    })
-
-                    .then(function (results) {
-                        
-                        if (results.myHandles.error || !results.myHandles.body)
-                            throw results.error||'failed to get handles';
-
-
-                        var handles = results.myHandles.body;
-
-                        if (Object.keys(handles).length ==0) {
-                            throw 'no user found';
-                        }
-
-                        var retPromises = {};
-
-                        Object.keys(handles).map(function (key) {
-                            var transaction = new openChain.TransactionBuilder(results.apiClient);
-                            transaction.key = hdPrivateKey;
-                            
-                            retPromises[key] = transaction.updateAccountRecord(handles[key],
-                                        apiService.getloginAssetName(), Long.fromString("0"));
-                        });
-
-                        return RSVP.hash(retPromises);
-                    })
-
-                    
-                    .then(function (results) {
-                        var toSend = {};
-
-                        Object.keys(results).map(function (key) {
-                            var transaction = results[key];
-                            var signer = new openChain.MutationSigner(transaction.key);
-                            transaction.addSigningKey(signer);
-
-
-                            var mutation = transaction.build();
-                            var signatures = [];
-
-                            for (var i = 0; i < transaction.keys.length; i++) {
-                                signatures.push({
-                                    signature: transaction.keys[i].sign(mutation).toHex(),
-                                    pub_key: transaction.keys[i].publicKey.toHex()
-                                });
-                            }
-
-                            toSend[key + '_transaction'] = {
-                                mutation: mutation.toHex(),
-                                signatures: signatures
-                            };
-                        });
-
-                        toSend.PubKey = pubKey;
-
-                        return request
-                                .post('/api/token/' + community.handle)
-                                .send(toSend)
-                                .set('Accept', 'application/json')
-                                .use(superThen).end()
-
-                    })
-
-                    .then(function (results) {
-                        if (results.error || !results.body)
-                            throw results.error||'failed to sign in';
-
-                        me.pubKeyCallBack.success_callback(results.body);
-                    })
-
+                    me.setState({ signinProgress: true });
+                    me.signinWithkey(community,new bitcore.HDPrivateKey(stored))
                     .catch(function (error) {
                         me.setState({ showModal: true });
+                    })
+                    .finally(function () {
+                        me.setState({ signinProgress: false });
                     });
-                    
+
+                    //return needed or we will go to showModal
                     return;
+                   
                 }
             } 
 
@@ -197,59 +234,46 @@ module.exports = React.createClass({
             return;
         }
 
-        if (this.state.register) {
-            var code = new Mnemonic(this.state.passPhrase);
+        var code = new Mnemonic(this.state.passPhrase);
 
-            /*if this fails make sure in file 
-            C:\codework\sharonomy\web\node_modules\node-libs-browser\package.json
-            crypto browsify is updated. it fails cause webpack install old crypto-browserify
-            "crypto-browserify": "~3.11.0",
-            and run npm install
-            */
-            var derivedKey = code.toHDPrivateKey(null, "livenet");
-            
-            var hdPrivateKey = new bitcore.HDPrivateKey(derivedKey.xprivkey);
+        /*if this fails make sure in file 
+        C:\codework\sharonomy\web\node_modules\node-libs-browser\package.json
+        crypto browsify is updated. it fails cause webpack install old crypto-browserify
+        "crypto-browserify": "~3.11.0",
+        and run npm install
+        */
+        var derivedKey = code.toHDPrivateKey(null, "livenet");
 
-            //I don't think we need that any more
-            //hdPrivateKey.network = bitcore.Networks.get("openchain");
+        var hdPrivateKey = new bitcore.HDPrivateKey(derivedKey.xprivkey);
 
-            var pubKey= hdPrivateKey.privateKey.toAddress().toString();
-            
-            this.setState({ signinProgress: true, error: null });
-            request
-            .post('/api/token/reset/' + communityHandle)
-            .send({
-                email: this.state.email,
-                pin: this.state.pin,
-                PubKey: pubKey
-            })
-            .set('Accept', 'application/json')
-            .end(function (err, res) {
+        //I don't think we need that any more
+        //hdPrivateKey.network = bitcore.Networks.get("openchain");
+        this.setState({ signinProgress: true, error: null });
 
-                var retState = { signinProgress: false };
+        var Signin = this.state.register ?
+            this.signinWithReset(communityHandle, hdPrivateKey) :
+            this.signinWithkey(community, hdPrivateKey);
 
-                if (!err) {
-                    retState.showModal = false;
-                    retState.passPhrase = '';
-                    retState.register = false;
-                    retState.pin = null;
-                    
-                    res.body.hdPrivateKey = hdPrivateKey;
-                    if (typeof (localStorage) !== "undefined") {
-                        localStorage.setItem("myKey", derivedKey.xprivkey);
-                    }
-                    me.pubKeyCallBack.success_callback(res.body);
-                } else {
-                    retState.error = 'Failed to sign in';
-                    if (err.response && err.response.body) {
-                        retState.error += (' : ' + err.response.body.message);
-                    }
+        
+        Signin.then(function () {
+                if (typeof (localStorage) !== "undefined") {
+                    localStorage.setItem("myKey", derivedKey.xprivkey);
                 }
 
-                me.setState(retState);
+                me.setState({
+                    showModal :false,
+                    passPhrase:'',
+                    register:false,
+                    pin:null
+                });
+            })
+            .catch(function (error) {
+                me.setState({error: 
+                        'Failed to sign in :' + (error && error.message)?error.message:''});
+            })
+            .finally(function () {
+                me.setState({signinProgress: false });
             });
-
-        }
 
     },
 
@@ -297,33 +321,41 @@ module.exports = React.createClass({
         var h4Style = { marginTop: '0px' };
 
         return (
+            <div>
+            {
+                (!this.state.showModal && this.state.signinProgress) ?
+                    <h1 className="text-center text-muted"><i className="fa fa-cog fa-spin" style={{ marginRight: '5px' } }></i>Signing in...</h1>: ''
+                
+            }
             <Modal show={this.state.showModal} onHide={this.cancel} 
                    backdrop='static' >
-                <form onSubmit={this.OnSubmit}>
+                <form onSubmit={this.OnSubmit }>
                 <Modal.Header closeButton>
                     <Modal.Title>Sign in</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     {
-                        this.state.register?
+                        this.state.register ?
                         <div>
                             {
-                                this.state.email?
+                                this.state.email ?
                                 <div>
-                                    <div style={h4Style}>
+                                    <div style={h4Style }>
                                         <span style={lockSTyle} className="glyphicon glyphicon-lock"></span>
                                         <FormGroup 
-                                                   validationState={(this.state.pin && this.state.pin.length>=5)?'success':'error'}
-                                                   controlId="pin" style={{display: 'inline-block'}}>
+                                                   validationState={(this.state.pin && this.state.pin.length >= 5) ? 'success' : 'error'}
+                                                   controlId="pin" style={{ display: 'inline-block' }
+                                        }>
                                             <ControlLabel>
                                                     Reset code </ControlLabel>
                                             <FormControl type="text"
                                                          placeholder="Please check your email"
                                                          onChange={this.OnpinChange}
-                                                           value={this.state.pin}
+                                                           value={this.state.pin
+                                            }
                                                            />
                                             <Button  onClick={this.OnNoResetCode}
-                                                    style={{marginTop: '10px'}}
+                                                    style={{ marginTop: '10px' }}
                                                 bsStyle="danger" bsSize="xsmall" 
                                             >
                                             Reset code did not arrive
@@ -334,7 +366,8 @@ module.exports = React.createClass({
                                         <ControlLabel>
                                                 Here's your new pass phrase </ControlLabel>
                                         <FormControl type="text"
-                                                       value={this.state.passPhrase}
+                                                       value={this.state.passPhrase
+                                        }
                                                        />
                                     </FormGroup>
                                     <div>
@@ -345,16 +378,18 @@ module.exports = React.createClass({
                                 </div>
                                 :
                                 <div>
-                                    <h4 style={h4Style}>
+                                    <h4 style={h4Style }>
                                         <span style={lockSTyle} className="glyphicon glyphicon-lock"></span>
                                         Please enter your email address
                                     </h4>
                                     <FormGroup controlId="email"
-                                           validationState={this.validateEmail()}>
+                                           validationState={this.validateEmail()
+                                    }>
                                         <FormControl type="email" autoFocus={true} 
                                                        value={this.state.emailEntry}
                                                         placeholder="Your email address"
-                                                       onChange={this.OnemailChange} />
+                                                       onChange={this.OnemailChange
+                                        } />
                                     </FormGroup>
                                     <div>
                                         <strong className="text-primary">
@@ -362,22 +397,24 @@ module.exports = React.createClass({
                                         </strong>
                                     </div>
                                 </div>
-                            }
+}
                             
                         </div>
                         :
                         <div>
-                            <h4 style={h4Style}>
+                            <h4 style={h4Style }>
                                 <span style={lockSTyle} className="glyphicon glyphicon-lock"></span>
                                 Please enter your passphrase to sign in
                             </h4>
                             <FormGroup controlId="passPhrase"
-                                       validationState={this.state.register?'warning':'success'}>
-                                <ControlLabel>{this.state.register ? 
+                                       validationState={this.state.register ? 'warning' : 'success'
+                            }>
+                                <ControlLabel>{this.state.register ?
                                         'Here\'s your new pass phrase' : 'Your pass phrase please'}</ControlLabel>
                                 <FormControl type="text" autoFocus={true} 
                                                value={this.state.passPhrase}
-                                               onChange={this.OnPassPhraseChange} />
+                                               onChange={this.OnPassPhraseChange
+                                } />
                             </FormGroup>
 
                             <Button  onClick={this.OnNoPasspharse}
@@ -387,7 +424,7 @@ module.exports = React.createClass({
                             </Button>
 
                         </div>
-                    }
+}
                     
 
                    
@@ -397,22 +434,25 @@ module.exports = React.createClass({
                 <Modal.Footer>
                     <span className="text-danger">{this.state.error}</span>
                     <Button type="submit" bsStyle="success" 
-                            disabled={this.state.signinProgress || !this.isFormValid()}>
+                            disabled={this.state.signinProgress || !this.isFormValid()
+                    }>
                         {
                             this.state.signinProgress ?
-                                <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i> : ''
-                            
+                                <i className="fa fa-cog fa-spin" style={{ marginRight: '5px' } }></i> : ''
+
                         }
 
                         {
                         (this.state.register && !this.state.email) ? 'Send reset code' : 'Sign in'
-                        }
+}
                         
                     </Button>
                     <Button onClick={this.cancel} bsStyle="warning">Cancel</Button>
                 </Modal.Footer>
                 </form>
             </Modal>
+            </div>
+
         );
     }
 });
