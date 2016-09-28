@@ -47,7 +47,7 @@ namespace web.Migrations
                         .HasAnnotation("MaxLength", 25);
 
                     b.Property<string>("handle")
-                        .HasAnnotation("MaxLength", 25);
+                        .HasAnnotation("MaxLength", 150);
 
                     b.Property<string>("ResetPin")
                         .HasAnnotation("MaxLength", 50);
@@ -68,6 +68,9 @@ namespace web.Migrations
                         .HasAnnotation("MaxLength", 255);
 
                     b.Property<string>("phone")
+                        .HasAnnotation("MaxLength", 15);
+
+                    b.Property<string>("pubKey")
                         .HasAnnotation("MaxLength", 15);
 
                     b.HasKey("communityHandle", "handle");

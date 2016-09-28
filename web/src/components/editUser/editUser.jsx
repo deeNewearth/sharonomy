@@ -240,6 +240,11 @@ module.exports = React.createClass({
         })
 
         .then(function(transaction){
+            return transaction.updateAccountRecord('/aka/' + me.state.handle + '/',
+                apiService.getloginAssetName(), Long.fromString("0"))
+        })
+
+        .then(function(transaction){
 
             var signer = new openChain.MutationSigner(transaction.key);
             transaction.addSigningKey(signer);

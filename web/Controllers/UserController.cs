@@ -47,40 +47,16 @@ namespace web.Controllers
         [Converters.UniqueViolation("AK_Users_communityHandle_email", "email", "This email address already exists")]
         public async Task<Models.User> Post([FromBody]Models.updateUserRequest req)
         {
-            var mutation = Openchain.MessageSerializer.DeserializeMutation(Openchain.ByteString.Parse(req.transaction.mutation));
-            var record = mutation.Records.Single();
-            var decoded = new OpenChain.Client.DecodedRecord<Models.OCUserInfo>(record);
 
-            if (decoded.Path != $"/aka/{req.user.handle}/")
-                throw new Exception("Transaction handles mismatch");
-
-            var j = Newtonsoft.Json.Linq.JObject.FromObject(req.transaction);
 
             using (var transaction = _dbContext.Database.BeginTransaction())
-            using (var cli = new HttpClient())
             {
                 _dbContext.Users.Add(req.user);
                 await _dbContext.SaveChangesAsync();
 
                 var community = _dbContext.Communities.Single(c => c.handle == req.user.communityHandle);
 
-                cli.Timeout = TimeSpan.FromHours(1);
-                var query = $"{community.OCUrl}submit";
-                var tresult = await cli.PostAsync(query,
-                            new ByteArrayContent(Encoding.UTF8.GetBytes(j.ToString(Newtonsoft.Json.Formatting.None))));
-
-                var s = await tresult.Content.ReadAsStringAsync();
-                var obj = Newtonsoft.Json.Linq.JObject.Parse(s);
-                if (tresult.StatusCode != System.Net.HttpStatusCode.OK)
-                {
-                    throw new Converters.DisplayableException("chain error : " + (string)obj["error_code"]);
-                }
-
-                var ocTransaction = new
-                {
-                    MutationHash = Openchain.ByteString.Parse((string)obj["mutation_hash"]),
-                    TransactionHash = Openchain.ByteString.Parse((string)obj["transaction_hash"])
-                };
+                await TokenController.TransactionVerifier($"/aka/{req.user.handle}/", req.transaction, $"{community.OCUrl}");
 
                 transaction.Commit();
             }

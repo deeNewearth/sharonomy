@@ -23,6 +23,7 @@ module.exports = {
     getCommunity(){return _Community;},
     getCommunityHandle() { return _Community.handle; },
     getAssetName() { return '/asset/' + _Community.handle + '_hours/'; },
+    getloginAssetName() { return '/' + _Community.handle + '_login/'; },
     getTreasuryAccount() { return '/treasury/' + _Community.handle + '_hours/'; },
 
     parseErrorMessage(err) {

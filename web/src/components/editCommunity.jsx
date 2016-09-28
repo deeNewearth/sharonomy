@@ -10,6 +10,7 @@ var HelpBlock = require('react-bootstrap').HelpBlock;
 var Button = require('react-bootstrap').Button;
 var openChain = require('openchain');
 var request = require('superagent');
+require('superagent-auth-bearer')(request);
 var RSVP = require('rsvp');
 
 var bizValidator = require('../js/bizValidator');
@@ -78,6 +79,7 @@ module.exports = React.createClass({
             return new RSVP.Promise(function (resolve, reject) {
                 request
                 .put('/api/Community/' + me.state.handle)
+                .authBearer(creds.token)
                 .send({
                     full_name: me.state.full_name,
                     description: me.state.description,

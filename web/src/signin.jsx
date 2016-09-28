@@ -12,7 +12,11 @@ var Mnemonic = require("bitcore-mnemonic");
 var bitcore = require("bitcore-lib");
 var request = require('superagent');
 var apiService = require('./js/apiService');
-
+var superThen= require('superagent-then');
+var RSVP = require('RSVP');
+var _ = require('lodash');
+var openChain = require('openchain');
+var Long = require('Long');
 
 module.exports = React.createClass({
     componentWillMount() {
@@ -20,10 +24,95 @@ module.exports = React.createClass({
         this.pubSub_LGIN_NEEDED_token = PubSub.subscribe('LOGIN NEEDED', function (msg, data) {
             me.pubKeyCallBack = data;
 
-            if (typeof (localStorage) !== "undefined") {
+            var community = apiService.getCommunity();
+
+            //if we have not chose community don't bother signing in with stored key
+            if (typeof (localStorage) !== "undefined" && community) {
                 var stored = localStorage.getItem("myKey");
                 if (stored) {
-                    me.pubKeyCallBack.success_callback(new bitcore.HDPrivateKey(stored));
+                    var hdPrivateKey = new bitcore.HDPrivateKey(stored);
+                    var pubKey = hdPrivateKey.privateKey.toAddress().toString();
+
+                    RSVP.hash({
+                        myHandles :request
+                                    .get('/api/token/myHandles/' + community.handle + '/' + pubKey)
+                                    .set('Accept', 'application/json')
+                                    .use(superThen).end(),
+                        apiClient :apiService.ensureAPIClient()
+                    })
+
+                    .then(function (results) {
+                        
+                        if (results.myHandles.error || !results.myHandles.body)
+                            throw results.error||'failed to get handles';
+
+
+                        var handles = results.myHandles.body;
+
+                        if (Object.keys(handles).length ==0) {
+                            throw 'no user found';
+                        }
+
+                        var retPromises = {};
+
+                        Object.keys(handles).map(function (key) {
+                            var transaction = new openChain.TransactionBuilder(results.apiClient);
+                            transaction.key = hdPrivateKey;
+                            
+                            retPromises[key] = transaction.updateAccountRecord(handles[key],
+                                        apiService.getloginAssetName(), Long.fromString("0"));
+                        });
+
+                        return RSVP.hash(retPromises);
+                    })
+
+                    
+                    .then(function (results) {
+                        var toSend = {};
+
+                        Object.keys(results).map(function (key) {
+                            var transaction = results[key];
+                            var signer = new openChain.MutationSigner(transaction.key);
+                            transaction.addSigningKey(signer);
+
+
+                            var mutation = transaction.build();
+                            var signatures = [];
+
+                            for (var i = 0; i < transaction.keys.length; i++) {
+                                signatures.push({
+                                    signature: transaction.keys[i].sign(mutation).toHex(),
+                                    pub_key: transaction.keys[i].publicKey.toHex()
+                                });
+                            }
+
+                            toSend[key + '_transaction'] = {
+                                mutation: mutation.toHex(),
+                                signatures: signatures
+                            };
+                        });
+
+                        toSend.PubKey = pubKey;
+
+                        return request
+                                .post('/api/token/' + community.handle)
+                                .send(toSend)
+                                .set('Accept', 'application/json')
+                                .use(superThen).end()
+
+                    })
+
+                    .then(function (results) {
+                        if (results.error || !results.body)
+                            throw results.error||'failed to sign in';
+
+                        me.pubKeyCallBack.success_callback(results.body);
+                    })
+
+                    .catch(function (error) {
+                        me.setState({ showModal: true });
+                    });
+                    
                     return;
                 }
             } 
@@ -77,11 +166,16 @@ module.exports = React.createClass({
         if (!this.isFormValid())
             return;
 
+        var community = apiService.getCommunity();
+        var communityHandle = community ? community.handle : 'unknown_community';
+
         var me = this;
         if (this.state.register && !this.state.email) {
-            this.setState({ signinProgress: true,error:null });
+            this.setState({ signinProgress: true, error: null });
+
+
             request
-            .get('/api/token/reset/' + apiService.getCommunityHandle() + '/' + this.state.emailEntry)
+            .get('/api/token/reset/' + communityHandle + '/' + this.state.emailEntry)
             .set('Accept', 'application/json')
             .end(function (err, res) {
 
@@ -123,7 +217,7 @@ module.exports = React.createClass({
             
             this.setState({ signinProgress: true, error: null });
             request
-            .post('/api/token/reset/' + apiService.getCommunityHandle())
+            .post('/api/token/reset/' + communityHandle)
             .send({
                 email: this.state.email,
                 pin: this.state.pin,
@@ -138,6 +232,8 @@ module.exports = React.createClass({
                     retState.showModal = false;
                     retState.passPhrase = '';
                     retState.register = false;
+                    retState.pin = null;
+                    
                     res.body.hdPrivateKey = hdPrivateKey;
                     if (typeof (localStorage) !== "undefined") {
                         localStorage.setItem("myKey", derivedKey.xprivkey);
@@ -158,7 +254,7 @@ module.exports = React.createClass({
     },
 
     OnNoResetCode() {
-        this.setState({ email: null });
+        this.setState({ email: null, pin:null });
     },
 
     OnPassPhraseChange(e) {

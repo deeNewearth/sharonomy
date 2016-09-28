@@ -8,8 +8,8 @@ using web.Models;
 namespace web.Migrations
 {
     [DbContext(typeof(CommunityContext))]
-    [Migration("20160922023547_initialCreate")]
-    partial class initialCreate
+    [Migration("20160927173041_initalmake")]
+    partial class initalmake
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -48,7 +48,10 @@ namespace web.Migrations
                         .HasAnnotation("MaxLength", 25);
 
                     b.Property<string>("handle")
-                        .HasAnnotation("MaxLength", 25);
+                        .HasAnnotation("MaxLength", 150);
+
+                    b.Property<string>("ResetPin")
+                        .HasAnnotation("MaxLength", 50);
 
                     b.Property<string>("address")
                         .IsRequired()
@@ -66,6 +69,9 @@ namespace web.Migrations
                         .HasAnnotation("MaxLength", 255);
 
                     b.Property<string>("phone")
+                        .HasAnnotation("MaxLength", 15);
+
+                    b.Property<string>("pubKey")
                         .HasAnnotation("MaxLength", 15);
 
                     b.HasKey("communityHandle", "handle");

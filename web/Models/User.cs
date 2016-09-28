@@ -6,9 +6,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace web.Models
 {
     /// <summary>
-    /// the OC user info record
+    /// User record in lookup database
     /// </summary>
-    public class OCUserInfo
+    public class User
     {
         [Required]
         [StringLength(124)]
@@ -17,23 +17,20 @@ namespace web.Models
         [StringLength(50)]
         [JsonIgnore]
         public string ResetPin { get; set; }
-    }
 
-    /// <summary>
-    /// User record in lookup database
-    /// </summary>
-    public class User :OCUserInfo
-    {
         [StringLength(25)]
         [Required]
         public string communityHandle { get; set; }
 
-        [StringLength(25)]
+        [StringLength(150)]
         [Required]
         public string handle { get; set; }
 
         [StringLength(15)]
         public string phone { get; set; }
+
+        [StringLength(15)]
+        public string pubKey { get; set; }
 
         [StringLength(255)]
         [Required]

@@ -9,6 +9,9 @@ using System.Linq;
 using OpenChain.Client;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
 
 namespace web.Controllers
 {
@@ -42,10 +45,56 @@ namespace web.Controllers
         [HttpGet("reset/{Community}/{email}")]
         public async Task<dynamic> Reset(String Community, String email)
         {
+            if (Community == CommunityController.UNKNOWN_COMMUNITY)
+            {
+                //ensure unknowns community exists
+                var unknown = _dbContext.Communities.SingleOrDefault(c => c.handle == Community);
+                if (null == unknown)
+                {
+                    unknown = new Models.Community
+                    {
+                        full_name = "not used unknown community",
+                        description = "used to initial signin for community creaters",
+                        handle = Community,
+                        OCUrl = "notusednodb"
+                    };
+                    _dbContext.Communities.Add(unknown);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+
             var user = _dbContext.Users.Include(u => u.community).
                 SingleOrDefault(u => u.communityHandle == Community && u.email == email);
             if (null == user)
-                throw new Converters.DisplayableException("email address not found");
+            {
+                if (Community == CommunityController.UNKNOWN_COMMUNITY)
+                {
+                    user = new Models.User
+                    {
+                        address = "unknown address",
+                        communityHandle = CommunityController.UNKNOWN_COMMUNITY,
+                        email = email,
+                        name = "Community admin",
+                        handle = $"admincreater_{email}"
+                    };
+                    _dbContext.Users.Add(user);
+                }
+                else
+                {
+                    //check if this is an admin
+                    user = _dbContext.Users.SingleOrDefault(u =>
+                            u.communityHandle == CommunityController.UNKNOWN_COMMUNITY
+                            && u.address == $"{Community}_admin"
+                            && u.handle == $"admincreater_{email}");
+
+                    if (null == user)
+                    {
+                        throw new Converters.DisplayableException("email address not found");
+                    }
+
+                    
+                }
+            }
 
             var random = new Random();
             string resetPin = string.Empty;
@@ -113,18 +162,180 @@ namespace web.Controllers
                 if (authenticated)
                 {
                     user = currentUser.Identity.Name;
-                    //foreach (Claim c in currentUser.Claims) if (c.Type == "EntityID") entityId = Convert.ToInt32(c.Value);
-                    var communityClaim = currentUser.Claims.Single(c => c.Type == "Community");
+                    
+                    var communityClaim = currentUser.Claims;
                     
 
                     tokenExpires = DateTime.UtcNow.AddMinutes(2);
-                    token = GetToken(currentUser.Identity.Name, communityClaim.Value, tokenExpires);
+                    token = GetToken(currentUser.Identity.Name, tokenExpires, 
+                        currentUser.Claims.ToDictionary(k=>k.Type, v=>v.Value));
                 }
             }
             return new { authenticated = authenticated, user = user, entityId = entityId, token = token, tokenExpires = tokenExpires };
         }
 
+
+        [HttpGet("myHandles/{Community}/{PubKey}")]
+        [AllowAnonymous]
+        public async Task<Dictionary<String, String>> myHandles(String Community, String PubKey)
+        {
+            var toRet = new Dictionary<String, String>();
+
+            var user = await _dbContext.Users.SingleOrDefaultAsync(
+                u => u.communityHandle == Community
+                && u.pubKey == PubKey
+                );
+
+            if (null != user)
+                toRet["Handle"] = user.handle;
+
+            var communityObj = await _dbContext.Communities.SingleAsync(c => c.handle == Community);
+
+
+
+            var ocs = new OpenChainServer(communityObj.OCUrl);
+            using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
+            {
+                //check for admin
+                var treasuryACL = await getACL(ad, CommunityController.getTreasuryPath(Community),
+                    new[] { new {
+                        subjects = new [] { new {
+                            addresses = new String[] { },
+                            required =1 }
+                        }
+                        }}
+                 );
+
+                var adminAddress = treasuryACL.SelectMany(t =>
+                        t.subjects.SelectMany(s => s.addresses.Select(a => a)));
+
+                if (adminAddress.Contains(PubKey))
+                {
+                    toRet["treasuryHandle"] = CommunityController.getTreasuryPath(Community);
+                }
+            }
+
+
+
+            return toRet;
+        }
+
         public class AuthRequest
+        {
+            public string PubKey { get; set; }
+            public Models.OpenchainTransaction treasuryHandle_transaction { get; set; }
+            public Models.OpenchainTransaction Handle_transaction { get; set; }
+        }
+
+        /// <summary>
+        /// Logs in against signed Transaction
+        /// </summary>
+        /// <param name="req"></param>
+        /// <returns></returns>
+        [HttpPost("{Community}")]
+        [AllowAnonymous]
+        public async Task<dynamic> Post(String Community, [FromBody] AuthRequest req)
+        {
+            var user = await _dbContext.Users.SingleOrDefaultAsync(
+                u => u.communityHandle == Community
+                && u.pubKey == req.PubKey
+                );
+
+            var communityObj = await _dbContext.Communities.SingleAsync(c => c.handle == Community);
+
+            var Claims = new Dictionary<string, string> ();
+
+            if (null != user)
+            {
+                throw new NotImplementedException();
+            }
+
+            if (null != req.treasuryHandle_transaction)
+            {
+                var ocs = new OpenChainServer(communityObj.OCUrl);
+                using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
+                {
+                    //check for admin
+                    var treasuryACL = await getACL(ad, CommunityController.getTreasuryPath(Community),
+                        new[] { new {
+                        subjects = new [] { new {
+                            addresses = new String[] { },
+                            required =1 }
+                        }
+                        }}
+                     );
+
+                    var adminAddress = treasuryACL.SelectMany(t =>
+                            t.subjects.SelectMany(s => s.addresses.Select(a => a)));
+
+                    if (adminAddress.Contains(req.PubKey))
+                    {
+                        await TransactionVerifier(CommunityController.getTreasuryPath(Community),
+                            req.treasuryHandle_transaction, communityObj.OCUrl);
+                        //we have admin
+                        Claims["admin"] = "true";
+
+                        if (null == user)
+                        {
+                            user = _dbContext.Users.First(u =>
+                                    u.communityHandle == CommunityController.UNKNOWN_COMMUNITY
+                                    && u.address == $"{Community}_admin");
+                        }
+                    }
+                }
+            }
+
+            if (Claims.Count() == 0)
+            {
+                throw new Converters.DisplayableException("Failed to sign in");
+            }
+
+            Claims["Community"] = Community;
+            return createToken(user, Claims);
+        }
+
+        internal static async Task TransactionVerifier(
+            String RecordPath, Models.OpenchainTransaction transaction,String OCUrl)
+        {
+            var mutation = Openchain.MessageSerializer.DeserializeMutation(Openchain.ByteString.Parse(transaction.mutation));
+            var record = mutation.Records.Single();
+            var decoded = new OpenChain.Client.DecodedRecord<OpenChain.Client.TransactionInfo>(record);
+
+            if (decoded.Path != RecordPath)
+                throw new Exception("Transaction handles mismatch");
+
+            using (var cli = new HttpClient())
+            {
+                var j = Newtonsoft.Json.Linq.JObject.FromObject(transaction); cli.Timeout = TimeSpan.FromHours(1);
+                var query = $"{OCUrl}submit";
+
+                var tresult = await cli.PostAsync(query,
+                        new ByteArrayContent(Encoding.UTF8.GetBytes(j.ToString(Newtonsoft.Json.Formatting.None))));
+
+                var s = await tresult.Content.ReadAsStringAsync();
+                var obj = Newtonsoft.Json.Linq.JObject.Parse(s);
+                if (tresult.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    throw new Converters.DisplayableException("chain error : " + (string)obj["error_code"]);
+                }
+
+                var ocTransaction = new
+                {
+                    MutationHash = Openchain.ByteString.Parse((string)obj["mutation_hash"]),
+                    TransactionHash = Openchain.ByteString.Parse((string)obj["transaction_hash"])
+                };
+
+            }
+
+        }
+
+        static async Task<T> getACL<T>(OpenChainSession ad, String assetPath, T format) where T : class
+        {
+            var assetACL = await ad.GetData<T>(assetPath, "acl");
+            return assetACL.Value; 
+        }
+
+        public class AuthResetRequest
         {
             public string email { get; set; }
             public string pin { get; set; }
@@ -132,48 +343,87 @@ namespace web.Controllers
         }
 
         /// <summary>
-        /// Request a new token for a given username/password pair.
+        /// Resets public key against a reset pin.
         /// </summary>
         /// <param name="req"></param>
         /// <returns></returns>
         [HttpPost("reset/{Community}")]
         [AllowAnonymous]
-        public async Task<dynamic> Post(String Community,[FromBody] AuthRequest req)
+        public async Task<dynamic> Post(String Community,[FromBody] AuthResetRequest req)
         {
-            var user = _dbContext.Users.
-                            Single(u => u.communityHandle == Community && u.email == req.email);
+            var user = await _dbContext.Users.
+                            SingleOrDefaultAsync(u => u.communityHandle == Community && u.email == req.email);
+
+            var Claims = new Dictionary<string, string>{ {"Community",Community } };
+
+            var CommunityObj = await _dbContext.Communities.SingleAsync(c => c.handle == Community);
+
+            if (null == user)
+            {
+                //check if admin
+                user = await _dbContext.Users.SingleOrDefaultAsync(u =>
+                        u.communityHandle == CommunityController.UNKNOWN_COMMUNITY
+                        && u.email == req.email
+                        && u.address == $"{Community}_admin");
+
+                if (null == user)
+                    throw new Converters.DisplayableException("invalid email or pin");
+                else
+                {
+                    //we have admin
+                    Claims["admin"] = "true";
+                }
+            } else
+            {
+                Claims["ACC"] = "true";
+            }
+
             if(user.ResetPin != req.pin)
                 throw new Converters.DisplayableException("email or pin are incorrect");
             user.ResetPin = null;
             await _dbContext.SaveChangesAsync();
 
-            var ocs = new OpenChainServer(user.community.OCUrl);
+            var ocs = new OpenChainServer(CommunityObj.OCUrl);
             using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
             {
-                await CommunityController.setACL(ad, $"/aka/{user.handle}/", new[] { new {
+                if (Claims.ContainsKey("admin") && CommunityController.UNKNOWN_COMMUNITY != Community)
+                {
+                    await CommunityController.SetAdminACL(ad, Community, req.PubKey);
+                }
+
+                if (Claims.ContainsKey("ACC"))
+                {
+                    await CommunityController.setACL(ad, $"/aka/{user.handle}/", new[] { new {
                         subjects = new [] { new {
                             addresses = new[] {req.PubKey },
                             required =1 }
                         },
                         permissions = new {account_spend="Permit",account_modify="Permit"}
                     } });
+                }
+
             }
 
-
-            DateTime? expires = DateTime.UtcNow.AddMinutes(2);
-            var token = GetToken(user.handle, Community, expires);
-            return new { authenticated = true, User = user, token = token, tokenExpires = expires };
+            return createToken(user, Claims);
 
         }
 
-        private string GetToken(string user,String Community,  DateTime? expires)
+        dynamic createToken(Models.User user, Dictionary<String,String> claims)
+        {
+            DateTime? expires = DateTime.UtcNow.AddMinutes(2);
+            var token = GetToken(user.handle, expires, claims);
+
+            return new { authenticated = true, User = user, token = token, tokenExpires = expires, claims= claims };
+        }
+
+        private string GetToken(string user, DateTime? expires,Dictionary<String,String> claims)
         {
             var handler = new JwtSecurityTokenHandler();
 
             // Here, you should create or look up an identity for the user which is being authenticated.
             // For now, just creating a simple generic identity.
             ClaimsIdentity identity = new ClaimsIdentity(new GenericIdentity(user, "TokenAuth"), 
-                new[] { new Claim("Community", Community) });
+                claims.Select(kv=> new Claim(kv.Key, kv.Value)).ToArray());
 
             var securityToken = handler.CreateToken(
                 new SecurityTokenDescriptor
