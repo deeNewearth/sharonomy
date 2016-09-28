@@ -413,7 +413,7 @@ namespace web.Controllers
             DateTime? expires = DateTime.UtcNow.AddMinutes(2);
             var token = GetToken(user.handle, expires, claims);
 
-            return new { authenticated = true, User = user, token = token, tokenExpires = expires, claims= claims };
+            return new {token = token, tokenExpires = expires};
         }
 
         private string GetToken(string user, DateTime? expires,Dictionary<String,String> claims)

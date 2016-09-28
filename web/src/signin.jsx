@@ -17,6 +17,7 @@ var RSVP = require('RSVP');
 var _ = require('lodash');
 var openChain = require('openchain');
 var Long = require('Long');
+var jwtDecode = require('jwt-decode');
 
 module.exports = React.createClass({
     handleToken (results) {
@@ -25,6 +26,7 @@ module.exports = React.createClass({
         if (results.request.error || !results.request.body)
             throw results.error||'failed to sign in';
         results.request.body.hdPrivateKey = results.privateKey;
+        results.request.body.decoded = jwtDecode(results.request.body.token)
         me.pubKeyCallBack.success_callback(results.request.body);
                         
     },
@@ -132,29 +134,46 @@ module.exports = React.createClass({
         this.pubSub_LGIN_NEEDED_token = PubSub.subscribe('LOGIN NEEDED', function (msg, data) {
             me.pubKeyCallBack = data;
 
-            var community = apiService.getCommunity();
+            new RSVP.Promise(function (resolve, reject) {
+                var community = apiService.getCommunity();
 
-            //if we have not chose community don't bother signing in with stored key
-            if (typeof (localStorage) !== "undefined" && community) {
-                var stored = localStorage.getItem("myKey");
-                if (stored) {
+                //if we have not chose community don't bother signing in with stored key
+                if (typeof (localStorage) !== "undefined" && community) {
+                    var stored = localStorage.getItem("myKey");
+                    if (stored) {
 
-                    me.setState({ signinProgress: true });
-                    me.signinWithkey(community,new bitcore.HDPrivateKey(stored))
-                    .catch(function (error) {
-                        me.setState({ showModal: true });
-                    })
-                    .finally(function () {
-                        me.setState({ signinProgress: false });
-                    });
+                        me.setState({ signinProgress: true });
+                        me.signinWithkey(community, new bitcore.HDPrivateKey(stored))
+                        .then(function () {
+                            resolve('signed in');
+                        })
+                        .catch(function (error) {
+                            reject(error);
+                        })
+                        .finally(function () {
+                            me.setState({ signinProgress: false });
+                        });
 
-                    //return needed or we will go to showModal
-                    return;
-                   
+                        //return needed or we will go to showModal
+                        return;
+
+                    }
                 }
-            } 
 
-            me.setState({ showModal: true });
+                reject('no stored key');
+            })
+            .catch(function (error) {
+
+                if (me.pubKeyCallBack.savedKeyOnly) {
+                    me.pubKeyCallBack.error_callback('no saved key');
+
+                } else {
+                    me.setState({ showModal: true });
+                }
+
+                
+            });
+            
         });
 
         
@@ -234,7 +253,17 @@ module.exports = React.createClass({
             return;
         }
 
-        var code = new Mnemonic(this.state.passPhrase);
+        var code = null;
+        try {
+            code = new Mnemonic(this.state.passPhrase);
+        }
+        catch (err) {
+            me.setState({ error: 'invalid passphrase' });
+        }
+
+        if (!code)
+            return;
+        
 
         /*if this fails make sure in file 
         C:\codework\sharonomy\web\node_modules\node-libs-browser\package.json
@@ -268,8 +297,10 @@ module.exports = React.createClass({
                 });
             })
             .catch(function (error) {
-                me.setState({error: 
-                        'Failed to sign in :' + (error && error.message)?error.message:''});
+                var err = 'Failed to sign in :';
+                if(error && error.message) err +=error.message;
+                else if(error) err +=error;
+                me.setState({error: err });
             })
             .finally(function () {
                 me.setState({signinProgress: false });

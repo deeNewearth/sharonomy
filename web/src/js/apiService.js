@@ -93,7 +93,7 @@ module.exports = {
 
         return _apiClientPromise;
     },
-    getcredsAync() {
+    getcredsAync(savedKeyOnly) {
         var me = this;
         if (null == _signinDefPromise) {
             _signinDefPromise = new RSVP.Promise(function(resolve, reject) {
@@ -101,10 +101,13 @@ module.exports = {
                 PubSub.publish('LOGIN NEEDED', {
                     success_callback: function (res) {
                         resolve(res);
+                        PubSub.publish('SIGNEDIN',res);
                     },
                     error_callback: function (error) {
                         reject(error);
-                    }
+                        _signinDefPromise = null;
+                    },
+                    savedKeyOnly: savedKeyOnly
                 });
 
             });
