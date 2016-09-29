@@ -30,7 +30,11 @@ namespace web.Controllers
             _dbContext = dbContext;
         }
 
-
+        [HttpGet("handle/{handle}")]
+        public Models.Community Gethandle(String handle)
+        {
+            return _dbContext.Communities.Single(c => c.handle == handle);
+        }
 
         [HttpGet("{pattern}")]
         public IEnumerable<Models.Community> Get(String pattern)
@@ -56,7 +60,7 @@ namespace web.Controllers
             } });
 
             //set user ACL
-            await setACL(ad, "/aka/", new[] {
+            await setACL(ad, USERFOLDER, new[] {
                         new {
                             subjects = new [] { new {
                                 addresses = new String[]  {adminPubKey },
@@ -76,11 +80,57 @@ namespace web.Controllers
 
         }
 
+        internal const String USERFOLDER = "/aka/";
+
+        static internal String getUserPath(String userHandle)
+        {
+            return $"{USERFOLDER}{userHandle}/";
+        }
+
         static internal String getTreasuryPath(String communityHandle)
         {
             return $"/treasury/{communityHandle}_hours/";
         }
-        
+
+        static async Task updateLedgerInfo(OpenChainSession ad, Models.OCCommunityInfo community)
+        {
+            var ir = await ad.GetData<LedgerInfo>("/", "info");
+            ir.Value = new LedgerInfo { Name = community.full_name, TermsOfService = community.description };
+            await ad.SetData(ir);
+
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<Models.Community> Post( [FromBody]Models.Community community)
+        {
+            User.EnsureCommunityAdmin(community.handle);
+
+            using (var transaction = _dbContext.Database.BeginTransaction())
+            {
+                var orgOCUrl = _dbContext.Communities.AsNoTracking().Single(c => c.handle == community.handle).OCUrl;
+
+
+                var attached = _dbContext.Communities.Attach(community);
+                attached.State = EntityState.Modified;
+                attached.Property(c => c.OCUrl).IsModified = false;
+
+
+               await  _dbContext.SaveChangesAsync();
+
+                var ocs = new OpenChainServer(orgOCUrl);
+                using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
+                {
+                    await updateLedgerInfo(ad,community);
+                }
+
+                transaction.Commit();
+                return community;
+            }
+
+        }
+
+
         [HttpPut("{handle}")]
         [Converters.UniqueViolation("PK_Communities", "handle", "This community handle is already taken")]
         [Authorize]
@@ -123,23 +173,27 @@ namespace web.Controllers
                 var ocs = new OpenChainServer(newCommunity.OCUrl);
                 using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
                 {
-                    var ir = await ocs.GetData<LedgerInfo>("/", "info");
-                    ir.Value = new LedgerInfo { Name = req.full_name, TermsOfService=req.description };
-                    await ad.SetData(ir);
-
+                    await updateLedgerInfo(ad, req);
 
                     //create the asset defination
-                    var assetPath = $"/treasury/{handle}_hours/"; 
-                    var assetName = $"/asset/{handle}_hours/";
+                    var assetPath = $"/treasury/{handle}_hours/";
+
+                    
 
                     var assetDef = await ad.GetData<Models.AssetDefination>(getTreasuryPath(handle), "asdef");
                     assetDef.Value = new Models.AssetDefination { name = $"Hour exchange of {req.full_name}" };
                     await ad.SetData(assetDef);
 
-                    //create the asset
-                    var record = await ad.Api.GetValue(getTreasuryPath(handle), "ACC", assetName);
-                    var acc = new AccountRecord(record);
-                    var mutation = ad.Api.BuildMutation(Openchain.ByteString.Empty, acc);
+                    var assetsToCreate = new[] { $"/asset/{handle}_hours/", $"/{handle}_login/" };
+
+                    //create the assets
+                    var accs = await Task.WhenAll(assetsToCreate.Select(async a =>
+                    {
+                        var record = await ad.Api.GetValue(getTreasuryPath(handle), "ACC", a);
+                        return new AccountRecord(record).GetRecord();
+                    }).ToArray());
+                    
+                    var mutation = ad.Api.BuildMutation(Openchain.ByteString.Empty, accs);
                     await ad.PostMutation(mutation);
 
                     await SetAdminACL(ad, handle, req.adminPubKey);

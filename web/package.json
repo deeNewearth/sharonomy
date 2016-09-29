@@ -23,6 +23,7 @@
     "bitcore-mnemonic": "^1.0.1",
     "bootstrap": "^3.3.7",
     "fetch": "^1.1.0",
+    "jwt-decode": "^2.1.0",
     "lodash": "^4.15.0",
     "moment": "^2.15.1",
     "openchain": "~0.2.3",

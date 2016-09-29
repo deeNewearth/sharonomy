@@ -12,7 +12,7 @@ var Mnemonic = require("bitcore-mnemonic");
 var bitcore = require("bitcore-lib");
 var request = require('superagent');
 var apiService = require('./js/apiService');
-var superThen= require('superagent-then');
+var withsupererror = require('./js/withsupererror');
 var RSVP = require('RSVP');
 var _ = require('lodash');
 var openChain = require('openchain');
@@ -23,8 +23,7 @@ module.exports = React.createClass({
     handleToken (results) {
         var me = this;
 
-        if (results.request.error || !results.request.body)
-            throw results.error||'failed to sign in';
+        
         results.request.body.hdPrivateKey = results.privateKey;
         results.request.body.decoded = jwtDecode(results.request.body.token)
         me.pubKeyCallBack.success_callback(results.request.body);
@@ -38,7 +37,7 @@ module.exports = React.createClass({
             myHandles :request
                         .get('/api/token/myHandles/' + community.handle + '/' + pubKey)
                         .set('Accept', 'application/json')
-                        .use(superThen).end(),
+                        .use(withsupererror).end(),
             apiClient :apiService.ensureAPIClient()
         })
 
@@ -102,7 +101,7 @@ module.exports = React.createClass({
                     .post('/api/token/' + community.handle)
                     .send(toSend)
                     .set('Accept', 'application/json')
-                    .use(superThen).end(),
+                    .use(withsupererror).end(),
                 privateKey: privateKey
             });
 
@@ -123,7 +122,7 @@ module.exports = React.createClass({
                     PubKey: pubKey
                 })
                 .set('Accept', 'application/json')
-                .use(superThen).end(),
+                .use(withsupererror).end(),
             privateKey: hdPrivateKey
         })
         .then(me.handleToken);
@@ -352,10 +351,14 @@ module.exports = React.createClass({
         var h4Style = { marginTop: '0px' };
 
         return (
-            <div>
+            <div style={{ position: 'relative' }}>
             {
-                (!this.state.showModal && this.state.signinProgress) ?
-                    <h1 className="text-center text-muted"><i className="fa fa-cog fa-spin" style={{ marginRight: '5px' } }></i>Signing in...</h1>: ''
+                ((!this.state.showModal && this.state.signinProgress)) ?
+                    <h1 className="text-center text-muted"
+                        style={{ position: 'absolute',zIndex: 10,width: '100%'}}
+                        >
+                        <i className="fa fa-cog fa-spin" style={{ marginRight: '5px' } }></i>Signing in...
+                    </h1>: ''
                 
             }
             <Modal show={this.state.showModal} onHide={this.cancel} 

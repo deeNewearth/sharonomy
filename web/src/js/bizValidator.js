@@ -31,6 +31,11 @@ module.exports =  function(component, schema) {
         if (err.response && err.response.body) {
             this.ProcessingErrors = err.response.body.errors;
             message = err.response.body.message;
+        } else {
+            if (err.message)
+                message = err.message;
+            if (err.errors)
+                this.ProcessingErrors = err.errors;
         }
 
         if (!this.ProcessingErrors)

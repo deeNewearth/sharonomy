@@ -1,7 +1,7 @@
 ﻿'use strict';
 var React = require('react');
 var LinkReact = require('react-router').Link;
-var CommunityBanner = require('../components/communityBanner');
+
 var apiService = require('../js/apiService');
 var Navbar = require('react-bootstrap').Navbar;
 var Glyphicon = require('react-bootstrap').Glyphicon;
@@ -15,7 +15,15 @@ var PubSub = require('pubsub-js');
 
 module.exports = React.createClass({
     getInitialState() {
-        return {};
+        return { navExpanded: false };
+    },
+    onNavItemClick(action){
+        this.setState({ navExpanded: false });
+        if (action && action.funcCall)
+            action.funcCall();
+    },
+    onNavbarToggle(){
+        this.setState({ navExpanded: ! this.state.navExpanded });
     },
     componentDidMount () {
         var me = this;
@@ -35,12 +43,15 @@ module.exports = React.createClass({
         PubSub.unsubscribe(this.pubSub_SIGNEDOUT_token);
     },
     render() {
+        var community = apiService.getCommunity();
         return (
             <div>
-                <Navbar >
+                <Navbar expanded={ this.state.navExpanded } onToggle={ this.onNavbarToggle }>
                   <Navbar.Header>
                     <Navbar.Brand>
-                            <a href="#">Sharonomy</a>
+                            <LinkReact to={'/' }
+                                        style={{maxWidth: '250px',maxHeight: '50px',overflow: 'hidden'}}
+                               >{community?community.handle:''}</LinkReact>
                     </Navbar.Brand>
                     <Navbar.Toggle />
                   </Navbar.Header>
@@ -49,14 +60,17 @@ module.exports = React.createClass({
                     <Nav pullRight>
                        
                          <LinkContainer to="/issue">
-                            <NavItem eventKey={1} >Issue</NavItem>
+                            <NavItem onClick={ this.onNavItemClick } eventKey={1} >Issue</NavItem>
                         </LinkContainer>
                         {
                             this.state.signedIn?
-                                <NavItem eventKey={2} onClick={apiService.signOut}>
+                                <NavItem eventKey={2} onClick={this.onNavItemClick
+                                    .bind(null, { funcCall: apiService.signOut })}>
                                         <Glyphicon glyph="log-out" /> Sign out</NavItem>
                                 :
-                                <NavItem eventKey={2} onClick={apiService.getcredsAync.bind(null, false)}>
+                                <NavItem eventKey={2} 
+                                   onClick={this.onNavItemClick
+                                    .bind(null, { funcCall: apiService.getcredsAync.bind(null, false)})}>
                                        <Glyphicon glyph="log-in" /> Sign in</NavItem>
                         }
                         
@@ -66,8 +80,8 @@ module.exports = React.createClass({
 
                 </Navbar>
 
-                <h2>Site banner main layout</h2>
-                <CommunityBanner data={apiService.getCommunity()}/>
+                
+                
                 
                 <Signin/>
 

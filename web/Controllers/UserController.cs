@@ -56,7 +56,8 @@ namespace web.Controllers
 
                 var community = _dbContext.Communities.Single(c => c.handle == req.user.communityHandle);
 
-                await TokenController.TransactionVerifier($"/aka/{req.user.handle}/", req.transaction, $"{community.OCUrl}");
+                await TokenController.TransactionVerifier(CommunityController.getUserPath(req.user.handle),
+                                req.transaction, $"{community.OCUrl}");
 
                 transaction.Commit();
             }

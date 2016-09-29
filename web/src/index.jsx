@@ -10,7 +10,7 @@ require('bootstrap/dist/css/bootstrap.css');
 require('./assets/font-awesome-4.6.3/css/font-awesome.css');
 require('./assets/customPositions.css');
 
-var editCommunity = require('./components/editCommunity');
+var EditCommunity = require('./components/editCommunity');
 var ChooseCommunity = require('./components/chooseCommunity');
 
 var MyBody = require('./body');
@@ -20,7 +20,7 @@ var MainLayout = require('./layouts/main');
 
 var CommunityIssue = require('./components/issueHours/issueHours');
 var ShowTransaction = require('./components/issueHours/showTransaction');
-var Spend = require('./components/spend');
+var Landing = require('./landing');
 
 
 //var testComp = require('./components/recentIssues');
@@ -52,9 +52,10 @@ var Wrapper = React.createClass({
             this.state.communityHandle?
             <Router history={browserHistory} >
                 <Route component={MainLayout}>
-                    <Route path="/" component={Spend}/>
+                    <Route path="/" component={Landing}/>
                     <Route path="/issue" component={CommunityIssue}/>
                     <Route path="transaction/:mutationHash" component={ShowTransaction}/>
+                    <Route path="editcommunity/:handle" component={EditCommunity}/>
                 </Route>
             </Router>
             :

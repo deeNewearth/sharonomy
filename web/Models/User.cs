@@ -29,7 +29,7 @@ namespace web.Models
         [StringLength(15)]
         public string phone { get; set; }
 
-        [StringLength(15)]
+        [StringLength(255)]
         public string pubKey { get; set; }
 
         [StringLength(255)]
@@ -41,7 +41,7 @@ namespace web.Models
         public string address { get; set; }
 
         [StringLength(512)]
-        [JsonConverter(typeof(Converters.mediaConverter))]
+        [JsonConverter(typeof(Converters.mediaConverter),"user_avatar")]
         public string avatar { get; set; }
 
         [JsonIgnore]

@@ -23,7 +23,7 @@ namespace web.Models
         public string OCUrl { get; set; }
 
         [StringLength(512)]
-        [JsonConverter(typeof(Converters.mediaConverter))]
+        [JsonConverter(typeof(Converters.mediaConverter),"community_banner")]
         public string avatar { get; set; }
 
         internal static void OnModelBuilding(ModelBuilder modelBuilder)

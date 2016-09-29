@@ -5,12 +5,14 @@ var Button = require('react-bootstrap').Button;
 
 var DropdownInput = require('./inputDropDown');
 var CommunityBanner = require('./CommunityBanner');
-var RSVP = require('RSVP');
+
 var request = require('superagent');
+var withsupererror = require('../js/withsupererror');
 
 var EditCommunity = require('./editCommunity');
 var apiService = require('../js/apiService');
 
+var Signin = require('../signin');
 
 
 
@@ -19,48 +21,48 @@ module.exports = React.createClass({
         return {}
     },
     componentWillMount () {
+        var me = this;
 
         if (typeof (localStorage) !== "undefined") {
             var stored = localStorage.getItem("myCommunity");
             if (stored) {
-                var e = JSON.parse(stored);
-                if (e) {
-                    apiService.setCommunity(e);
-                    if (this.props.onSelected)
-                        this.props.onSelected(e.handle);
-                }
-                    
+                return request.get('/api/Community/handle/' + stored)
+                .set('Accept', 'application/json')
+                .use(withsupererror).end()
+                .then(function (result) {
+                    me.onSelected(result.body);
+                })
+                .catch(function () {
+                    me.setState({ showChooser: true });
+                })
+
+                ;
+
+                
             }
         }
+        me.setState({ showChooser: true });
     },
-    onSelected(e) {
+    onSelected(community) {
 
         if (typeof (localStorage) !== "undefined") {
-            localStorage.setItem("myCommunity", JSON.stringify(e));
+            localStorage.setItem("myCommunity", community.handle);
         }
 
-        apiService.setCommunity(e);
+        apiService.setCommunity(community);
         if (this.props.onSelected)
-            this.props.onSelected(e.handle);
+            this.props.onSelected(community.handle);
     },
 
     fetchCommunities(pattern) {
-        return new RSVP.Promise(function (resolve, reject) {
-            if (!pattern) {
-                resolve(null);
-                return;
-            }
-            request
+
+        return request
             .get('/api/Community/' + pattern)
             .set('Accept', 'application/json')
-            .end(function (err, res) {
-                if (err)
-                    reject(err);
-                else
-                    resolve(res.body);
+            .use(withsupererror).end()
+            .then(function (res) {
+                return res.body;
             });
-
-        });
     },
 
     onNewCommunity() {
@@ -73,10 +75,14 @@ module.exports = React.createClass({
     render() {
         return (
             <div className="container">
+                <Signin/>
                 {
+                    this.state.showChooser?
+                    <div>
+{
                 this.state.newCommunity ?
                 <div style={{position:'relative'}}>
-                    <h2>Create new Time Bank</h2>
+                    <h2  className="text-center">Create new Time Bank</h2>
                     <EditCommunity 
                               onCancel={this.onEditCOmmunityCancel}
                               onDone={this.onSelected}/>
@@ -96,10 +102,19 @@ module.exports = React.createClass({
                         </DropdownInput>
                     </InputGroup>
                     <Button bsStyle="link" onClick={this.onNewCommunity}>
-                        Click here if you have been invited to create a new community
+                        <span>Click here if you have been invited to create a new community</span>
                     </Button>
                 </div>
                 }
+                    </div>
+                    :
+                    <h1 className="text-center text-muted"
+                        style={{ position: 'absolute',zIndex: 10,width: '100%'}}
+                        >
+                        <i className="fa fa-cog fa-spin" style={{ marginRight: '5px' } }></i>Loading...
+                    </h1>
+                }
+                
             </div>
             );
     }

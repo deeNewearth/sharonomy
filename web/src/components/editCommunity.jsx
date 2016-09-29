@@ -15,12 +15,17 @@ var RSVP = require('rsvp');
 
 var bizValidator = require('../js/bizValidator');
 var apiService = require('../js/apiService');
+var Avatar = require('./avatar/avatar');
+var withsupererror = require('../js/withsupererror');
+var _ = require('lodash');
+
 
 module.exports = React.createClass({
     mixins: [LoggerMixin],
     
     getInitialState() {
         return {
+            full_name:'',handle:'',description:'',
             Errors: {}
         };
     },
@@ -31,6 +36,30 @@ module.exports = React.createClass({
             handle: { required: true, minimum: 8 },
             description: { required: true, minimum: 20 }
         });
+    },
+
+    componentDidMount() {
+        if (this.props.params && this.props.params.handle) {
+            this.UpdatingExisting = true;
+            this.setState({ handle: this.props.params.handle, saveProgress: true });
+
+            var me = this;
+            request
+                .get('/api/Community/handle/' + this.props.params.handle)
+                .set('Accept', 'application/json')
+                .use(withsupererror).end()
+
+            .then(function (results) {
+                
+                var newstate = _.assign(me.state, results.body);
+                newstate.saveProgress = false;
+                me.setState(newstate);
+            })
+
+            .catch(function (err) {
+                me.setState({ Errors: { form: 'Failed to load details :' + err.message } })
+            });
+        }
     },
 
     OnFullNameChange(e) {
@@ -52,7 +81,7 @@ module.exports = React.createClass({
         
     },
     OnHandleChange(e) {
-        if (this.state.saveProgress || e.target.value.length > 25)
+        if (this.UpdatingExisting || this.state.saveProgress || e.target.value.length > 25)
            return;
        this.setState({ handle: e.target.value.replace(/\W+/g, "_") });
     },
@@ -61,6 +90,12 @@ module.exports = React.createClass({
             return;
         this.setState({ description: e.target.value });
     },
+    onAvatarChange(e) {
+        if (this.state.saveProgress)
+            return;
+        this.state.avatar = e;
+    },
+
 
     OnSubmit(e) {
         e.preventDefault();
@@ -73,32 +108,32 @@ module.exports = React.createClass({
         me.setState({ saveProgress: true });
         me.validator.ProcessingErrors = {};
 
+
         apiService.getcredsAync()
+
         .then(function (creds) {
             var key = creds.hdPrivateKey;
-            return new RSVP.Promise(function (resolve, reject) {
-                request
-                .put('/api/Community/' + me.state.handle)
-                .authBearer(creds.token)
-                .send({
-                    full_name: me.state.full_name,
-                    description: me.state.description,
-                    adminPubKey: key.privateKey.toAddress().toString()
-                })
-                .set('Accept', 'application/json')
-                .end(function (err, res) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                        if (me.props.onDone) {
-                            me.props.onDone(res.body);
-                        }
-                    }
-                });
 
-            });
+            var fields = _.pick(me.state, ['full_name', 'description', 'avatar']);
+            if (!me.UpdatingExisting)
+                fields.adminPubKey = key.privateKey.toAddress().toString()
+            else
+                fields.handle = me.state.handle;
 
+            var r = me.UpdatingExisting?
+                request.post('/api/Community'):request.put('/api/Community/' + me.state.handle);
+
+            return r.send(fields)
+                    .authBearer(creds.token)
+                    .set('Accept', 'application/json')
+                    .use(withsupererror).end()
+        })
+
+        .then(function(results){
+            if (me.props.onDone) {
+                me.props.onDone(results.body);
+            }
+            me.setState(_.assign(me.state, results.body));
         })
 
         .catch(function (err) {
@@ -110,65 +145,15 @@ module.exports = React.createClass({
         })
         ;
 
-        /*
-
-        apiService.getKeyAync()
-        .then(function (key) {
-            apiService.ensureAPIClient()
-            .then(function (apiClent) {
-
-                apiClent.getDataRecord('/community/' + me.state.handle + '/', 'info')
-                .then(function (info) {
-                    if (info.data) {
-
-                        //the handle exists
-
-                        
-
-                        var transaction = new openChain.TransactionBuilder(apiClent);
-                        transaction.addRecord(info.key,
-                            openChain.encoding.encodeString(JSON.stringify({
-                                full_name: me.state.full_name,
-                                description: me.state.description,
-                                admin_addresses: [key.privateKey.toAddress().toString()]
-
-                            })), info.version);
-                        transaction.key = key;
-
-                        var signer = new openChain.MutationSigner(transaction.key);
-
-                        transaction.addSigningKey(signer).submit()
-                        .then(function (response) {
-                            me.setState({ saveProgress: false });
-                            $scope.transactionHash = response["transaction_hash"];
-                            $scope.mutationHash = response["mutation_hash"];
-                        }, function (response) {
-                            var error = "failed to save : ";
-
-                            if (response.statusCode == 400) {
-                                error += response.data["error_code"];
-                            }
-
-                            me.setState({ error_text: error });
-                            me.setState({ saveProgress: false });
-                        });
-
-                    } else {
-                        
-
-                    }
-                });
-
-            });
-        });
-        */
-
-
     },
 
     render: function() {
         return (
     <form onSubmit={this.OnSubmit}>
+        <Avatar width={700} height={300} PickMessage={'Click to pick your community banner'}
+                Src={this.state.avatar}
+                onChange={this.onAvatarChange}
+                />
         <FormGroup controlId="fullNameText"
                    validationState={this.validator.validate('full_name')}>
           
@@ -181,16 +166,20 @@ module.exports = React.createClass({
           <HelpBlock>{this.state.Errors.full_name}</HelpBlock>
         </FormGroup>
 
-        <FormGroup controlId="HandleText"
-                   validationState={this.validator.validate('handle')}>
-          <ControlLabel>Your communitie's handle</ControlLabel>
-          <FormControl type="text"
-                       value={this.state.handle}
-                       placeholder="Community short name"
-                       onChange={this.OnHandleChange} />
-          <FormControl.Feedback />
-          <HelpBlock>{this.state.Errors.handle}</HelpBlock>
-        </FormGroup>
+        {
+        this.UpdatingExisting?'':
+            <FormGroup controlId="HandleText"
+                        validationState={this.validator.validate('handle')}>
+                <ControlLabel>Your communitie's handle</ControlLabel>
+                <FormControl type="text"
+                        value={this.state.handle}
+                        placeholder="Community short name"
+                        onChange={this.OnHandleChange} />
+                <FormControl.Feedback />
+                <HelpBlock>{this.state.Errors.handle}</HelpBlock>
+            </FormGroup>
+        }
+        
 
         <FormGroup controlId="descriptionText"
                    validationState={this.validator.validate('description')}>
@@ -202,21 +191,23 @@ module.exports = React.createClass({
           <HelpBlock>{this.state.Errors.description}</HelpBlock>
         </FormGroup>
 
-        <div className="text-danger">{this.state.Errors.form}</div>
-        <Button type="submit" bsStyle="success" 
-                    disabled={this.state.saveProgress}>
-            Create timebank 
-            {
-            this.state.saveProgress ?
-                                <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i> : ''
-            }
-        </Button>
+        <div  className="text-center">
+            <div className="text-danger">{this.state.Errors.form}</div>
+            <Button type="submit" bsStyle="success" 
+                        disabled={this.state.saveProgress}>
+                {this.UpdatingExisting?'Update':'Create'} timebank 
+                {
+                this.state.saveProgress ?
+                                    <i className="fa fa-cog fa-spin" style={{marginRight:'5px'}}></i> : ''
+                }
+            </Button>
 
-        <Button  bsStyle="warning" style={{marginLeft:'10px'}}
-                    onClick={this.props.onCancel}
-                    disabled={this.state.saveProgress}>
-            Cancel
-        </Button>
+            <Button  bsStyle="warning" style={{marginLeft:'10px'}}
+                        onClick={this.props.onCancel}
+                        disabled={this.state.saveProgress}>
+                Cancel
+            </Button>
+        </div>
 
      </form>
         );

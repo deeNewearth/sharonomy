@@ -29,12 +29,18 @@ var FileUpload = React.createClass({
 });
 
 module.exports = React.createClass({
-    getInitialState: function() {
+    processProperties(src) {
         return {
             cropperOpen: false,
             img: null,
-            croppedImg: this.props.Src
+            croppedImg: src
         };
+    }, 
+    getInitialState: function() {
+        return this.processProperties(this.props.Src);
+    },
+    componentWillReceiveProps: function (nextProps) {
+        this.setState(this.processProperties(nextProps.Src));
     },
     handleFileChange: function(dataURI) {
         this.setState({
@@ -62,11 +68,12 @@ module.exports = React.createClass({
     },
     render () {
         return (
-          <div>
-            <div className="avatar-photo">
+          <div style={{ margin: '10px' }} >
+            <div className="avatar-photo" 
+                    style={{ height: this.props.height || 200 + 'px', width: this.props.width || 200 + 'px' }}>
               <FileUpload handleFileChange={this.handleFileChange} />
               <div className="avatar-edit">
-                <span>Click to Pick Avatar</span>
+                <span>{this.props.PickMessage||'Click to pick Avatar'}</span>
                 <i className="fa fa-camera"></i>
               </div>
               <Image src={this.state.croppedImg} responsive/>
@@ -77,8 +84,8 @@ module.exports = React.createClass({
             cropperOpen={this.state.cropperOpen}
             onCrop={this.handleCrop}
             image={this.state.img}
-            width={400}
-            height={400}
+            width={this.props.width||400}
+            height={this.props.height || 400}
           />
             }
         </div>

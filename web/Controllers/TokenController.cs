@@ -26,6 +26,16 @@ namespace web.Controllers
         }
     }
 
+    internal static class ClaimsExtensions
+    {
+        public static void EnsureCommunityAdmin(this ClaimsPrincipal User, String CommunityHandle)
+        {
+            if (User.Claims.Single(c => c.Type == TokenController.COMMUNITYCLAIM).Value != CommunityHandle
+                || User.Claims.Single(c => c.Type == TokenController.ADMINCLAIM).Value != "true")
+                throw new UnauthorizedAccessException("not a community admin");
+        }
+    }
+
     [Route("api/[controller]")]
     public class TokenController : Controller
     {
@@ -187,7 +197,7 @@ namespace web.Controllers
                 );
 
             if (null != user)
-                toRet["Handle"] = user.handle;
+                toRet["Handle"] = CommunityController.getUserPath(user.handle);
 
             var communityObj = await _dbContext.Communities.SingleAsync(c => c.handle == Community);
 
@@ -247,7 +257,13 @@ namespace web.Controllers
 
             if (null != user)
             {
-                throw new NotImplementedException();
+                if (null == req.Handle_transaction)
+                    throw new Converters.DisplayableException("Handle transaction needed");
+
+                await TransactionVerifier(CommunityController.getUserPath(user.handle),
+                            req.Handle_transaction, communityObj.OCUrl);
+
+                Claims[ACCLAIM] = "true";
             }
 
             if (null != req.treasuryHandle_transaction)
@@ -273,7 +289,7 @@ namespace web.Controllers
                         await TransactionVerifier(CommunityController.getTreasuryPath(Community),
                             req.treasuryHandle_transaction, communityObj.OCUrl);
                         //we have admin
-                        Claims["admin"] = "true";
+                        Claims[ADMINCLAIM] = "true";
 
                         if (null == user)
                         {
@@ -290,19 +306,28 @@ namespace web.Controllers
                 throw new Converters.DisplayableException("Failed to sign in");
             }
 
-            Claims["Community"] = Community;
+            Claims[COMMUNITYCLAIM] = Community;
             return createToken(user, Claims);
         }
+
+        internal const String COMMUNITYCLAIM = "Community";
+        internal const String ADMINCLAIM = "admin";
+        internal const String ACCLAIM = "ACC";
+
+
+
 
         internal static async Task TransactionVerifier(
             String RecordPath, Models.OpenchainTransaction transaction,String OCUrl)
         {
             var mutation = Openchain.MessageSerializer.DeserializeMutation(Openchain.ByteString.Parse(transaction.mutation));
-            var record = mutation.Records.Single();
-            var decoded = new OpenChain.Client.DecodedRecord<OpenChain.Client.TransactionInfo>(record);
 
-            if (decoded.Path != RecordPath)
-                throw new Exception("Transaction handles mismatch");
+            var decodedRecords = mutation.Records.Select(r =>
+                            new OpenChain.Client.DecodedRecord<OpenChain.Client.TransactionInfo>(r));
+
+            var matched = decodedRecords.First(d => d.Path == RecordPath);
+            /*will throw is the user recors is not in there*/
+
 
             using (var cli = new HttpClient())
             {
@@ -371,11 +396,21 @@ namespace web.Controllers
                 else
                 {
                     //we have admin
-                    Claims["admin"] = "true";
+                    Claims[ADMINCLAIM] = "true";
                 }
             } else
             {
-                Claims["ACC"] = "true";
+                if(user.communityHandle == CommunityController.UNKNOWN_COMMUNITY
+                    && Community == CommunityController.UNKNOWN_COMMUNITY)
+                {
+                    Claims[ADMINCLAIM] = "true";
+                }else
+                {
+                    Claims[ACCLAIM] = "true";
+                    user.pubKey = req.PubKey;
+                }
+
+                
             }
 
             if(user.ResetPin != req.pin)
@@ -386,14 +421,14 @@ namespace web.Controllers
             var ocs = new OpenChainServer(CommunityObj.OCUrl);
             using (var ad = ocs.Login(TokenController.OCAdminpassPhrase))
             {
-                if (Claims.ContainsKey("admin") && CommunityController.UNKNOWN_COMMUNITY != Community)
+                if (Claims.ContainsKey(ADMINCLAIM) && CommunityController.UNKNOWN_COMMUNITY != Community)
                 {
                     await CommunityController.SetAdminACL(ad, Community, req.PubKey);
                 }
 
-                if (Claims.ContainsKey("ACC"))
+                if (Claims.ContainsKey(ACCLAIM))
                 {
-                    await CommunityController.setACL(ad, $"/aka/{user.handle}/", new[] { new {
+                    await CommunityController.setACL(ad, CommunityController.getUserPath(user.handle), new[] { new {
                         subjects = new [] { new {
                             addresses = new[] {req.PubKey },
                             required =1 }
