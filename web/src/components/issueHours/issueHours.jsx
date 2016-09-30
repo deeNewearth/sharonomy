@@ -22,15 +22,15 @@ module.exports = React.createClass({
             {
                 this.state.mutation ?
                 <div className="text-center">
-                    <h3>Sucessfully issued hours</h3>
+                    <h3>Sucessfully {this.props.useTreasury?'issued':'exchanged'} hours</h3>
                     <ShowTransaction mutation={this.state.mutation}/>
                     <Button onClick={this.onIssueagain}
                            bsStyle="info" bsSize="xsmall" >
-                                Issue more hours
+                                {this.props.useTreasury?'Issue':'exchange'} more hours
                     </Button>
                 </div>
                 
-                : <IssueForm onIssue={this.onIssue}/>
+                : <IssueForm onIssue={this.onIssue} useTreasury={this.props.useTreasury}/>
             }
             </div>
         );

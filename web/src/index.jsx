@@ -19,7 +19,16 @@ var MyBody = require('./body');
 
 var MainLayout = require('./layouts/main');
 
-var CommunityIssue = require('./components/issueHours/issueHours');
+var IssueHours = require('./components/issueHours/issueHours');
+var CommunityIssue = React.createClass({
+    render: function () {
+        return (
+            <CommunityIssue useTreasury="true" />
+        );
+    }
+});
+
+
 var ShowTransaction = require('./components/issueHours/showTransaction');
 var Landing = require('./landing');
 var TxHistory = require('./components/balance/history');
@@ -55,6 +64,7 @@ var Wrapper = React.createClass({
             <Router history={browserHistory} >
                 <Route component={MainLayout}>
                     <Route path="/" component={Landing}/>
+                    <Route path="spend" component={IssueHours}/>
                     <Route path="issue" component={CommunityIssue}/>
                     <Route path="transaction/:mutationHash" component={ShowTransaction}/>
                     <Route path="txhistory/:handle" component={TxHistory}/>

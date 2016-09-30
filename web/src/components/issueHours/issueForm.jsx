@@ -122,8 +122,12 @@ module.exports = React.createClass({
                     Long.fromString(rec.hours)));
             });
 
+            var fundingaccount = me.props.useTreasury ?
+                apiService.getTreasuryAccount()
+                : ('/aka/' + results.key.decoded.unique_name + '/');
+
             records.push(transaction.updateAccountRecord(
-                apiService.getTreasuryAccount(),
+                fundingaccount,
                 apiService.getAssetName(),
                 Long.fromString('-' + totalHours)));
 
@@ -246,7 +250,8 @@ module.exports = React.createClass({
         
         return (
             <div>
-                <h3 className="text-center">Issuing hours for community work</h3>
+                <h3 className="text-center">
+                {this.props.useTreasury?'Issuing hours for community work':'Exchange hours'}</h3>
                 {this.state.receivers.length>0?
                 <div className="well">
                     <h4>Recepients :</h4>{recepientTable}
