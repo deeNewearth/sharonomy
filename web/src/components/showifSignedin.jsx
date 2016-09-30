@@ -6,12 +6,16 @@ var PubSub = require('pubsub-js');
 
 module.exports = React.createClass({
     getInitialState() {
-        return {};
+        return { signedIn: false };
     },
     onSignedin(creds) {
         var signedin = false;
+
         if (this.props.admin) {
             if (creds.decoded.admin)
+                signedin = true;
+        }else if (this.props.ACC) {
+            if (creds.decoded.ACC)
                 signedin = true;
         } else {
             signedin = true;

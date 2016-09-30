@@ -10,20 +10,20 @@ module.exports = React.createClass({
         return {};
     },
     onIssue(e){
-        this.setState(e);
+        this.setState({ mutation: e });
     },
     onIssueagain(e){
-        this.setState({ receivers :null});
+        this.setState({ mutation: null });
     },
     
     render: function() {
         return (
             <div>
             {
-                this.state.receivers ?
+                this.state.mutation ?
                 <div className="text-center">
                     <h3>Sucessfully issued hours</h3>
-                    <ShowTransaction mutation={this.state}/>
+                    <ShowTransaction mutation={this.state.mutation}/>
                     <Button onClick={this.onIssueagain}
                            bsStyle="info" bsSize="xsmall" >
                                 Issue more hours

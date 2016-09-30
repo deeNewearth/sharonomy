@@ -10,13 +10,15 @@ var moment = require('moment');
 
 module.exports = React.createClass({
     getInitialState() {
-        return {
-            mutation:
-                this.props.mutation ?
-                 this.props.mutation : { receivers: [], 
-                 mutationHash: this.props.params?this.props.params.mutationHash:null
-                 }
-        };
+
+        var m = this.props.mutation ?
+                 this.props.mutation : {
+                     receivers: [],
+                     mutationHash: this.props.params ? this.props.params.mutationHash : null
+                 };
+
+        return {mutation:m};
+        
     },
     componentWillReceiveProps: function (nextProps) {
         this.parse(nextProps.mutationHash);
@@ -87,7 +89,8 @@ module.exports = React.createClass({
 
     },
     
-    render: function() {
+    render: function () {
+        var t = this.state.mutation;
         return (
             <div>
                 <h4 className="text-danger">{this.state.error}</h4>
@@ -102,7 +105,7 @@ module.exports = React.createClass({
                             <pre className="text-muted">
                                [Mutation# {this.state.mutation.mutationHash}] 
                             </pre>
-                            
+
                             <Grid className="well" style={{width:'100%'}}>
                                 <h4>Recepients</h4>
                                 {
@@ -118,9 +121,6 @@ module.exports = React.createClass({
                             <p>
                                 {this.state.mutation.description}
                             </p>
-
-                            
-
                         </div>
                 }
                 

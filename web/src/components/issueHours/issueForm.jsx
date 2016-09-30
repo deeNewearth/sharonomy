@@ -16,6 +16,7 @@ var Button = require('react-bootstrap').Button;
 var Tooltip = require('react-bootstrap').Tooltip;
 var OverlayTrigger = require('react-bootstrap').OverlayTrigger;
 var Glyphicon = require('react-bootstrap').Glyphicon;
+var Image = require('react-bootstrap').Image;
 
 var NewReceiver = require('./newReceiver');
 
@@ -38,6 +39,9 @@ module.exports = React.createClass({
     },
     getInitialState() {
         return this.clearAll();
+    },
+    componentWillUnmount() {
+        this._unMounted = true;
     },
     OnDescriptionChange(e) {
         if (this.state.savingData)
@@ -152,7 +156,9 @@ module.exports = React.createClass({
         })
 
         .finally(function () {
-            me.setState({ savingData: false });
+            if (!me._unMounted) {
+                me.setState({ savingData: false });
+            }
         })
 
         ;
@@ -178,7 +184,12 @@ module.exports = React.createClass({
                     
                     <Column xs={4} className="text-center">
                         <div style={{ border: 'solid 1px #ddd', padding: '5px' } }>
-                            <i className="fa fa-user fa-inverse fa-3x"></i>
+                            {rec.user.avatar ?
+                                <Image 
+                                   src={rec.user.avatar} responsive style={{ margin: 'auto' }}/>
+                                :<i className="fa fa-user fa-inverse fa-3x"></i>
+                            }
+                            
                         </div>
                     </Column>
                     

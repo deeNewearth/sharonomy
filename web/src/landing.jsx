@@ -18,7 +18,11 @@ module.exports = React.createClass({
                     <LinkReact to={'/issue' }>Issue Hours</LinkReact>
                 </ShowifSignedin>
 
-                <BalanceSummery/>
+
+                <ShowifSignedin ACC={true}>
+                    <BalanceSummery/>
+                </ShowifSignedin>
+                
 
             </div>
             );

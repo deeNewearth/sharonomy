@@ -57,6 +57,7 @@ var Wrapper = React.createClass({
                     <Route path="/" component={Landing}/>
                     <Route path="issue" component={CommunityIssue}/>
                     <Route path="transaction/:mutationHash" component={ShowTransaction}/>
+                    <Route path="txhistory/:handle" component={TxHistory}/>
                     <Route path="txhistory" component={TxHistory}/>
                     <Route path="editcommunity/:handle" component={EditCommunity}/>
                 </Route>

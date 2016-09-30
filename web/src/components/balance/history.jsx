@@ -7,6 +7,7 @@ var moment = require('moment');
 var Button = require('react-bootstrap').Button;
 var Modal = require('react-bootstrap').Modal;
 var ShowTx = require('../issueHours/showTransaction');
+var UserCompactTemplate = require('../compactUser');
 
 var TxRow = React.createClass({
     getInitialState() {
@@ -107,7 +108,10 @@ module.exports = React.createClass({
         })
 
         .then(function (results) {
-            var key = '/aka/' + results.creds.decoded.unique_name + '/:ACC:' + apiService.getAssetName();
+            me.uHandle = me.props.params && me.props.params.handle?
+                                    me.props.params.handle:results.creds.decoded.unique_name;
+            
+            var key = '/aka/' + me.uHandle + '/:ACC:' + apiService.getAssetName();
             //var t = openChain.encoding.encodeString(key);
 
             return results.apiClent.getRecordMutations(key);
@@ -115,7 +119,7 @@ module.exports = React.createClass({
 
         .then(function (mutations) {
             var transactions = mutations.map(function (item) { return item.toHex(); });
-            me.setState({ transactions: transactions });
+            me.setState({ transactions: transactions, uHandle:me.uHandle });
         })
 
         .catch(function (err) {
@@ -128,6 +132,10 @@ module.exports = React.createClass({
 
         return (
             <div className="container">
+                <div style={{fontSize: 'large',maxWidth:'500px'}}>
+                    <UserCompactTemplate userHandle={this.state.uHandle}/>
+                </div>
+                
                 <h3>Transaction history</h3>
                 <Loader loaded={this.state.transactions}>
                 

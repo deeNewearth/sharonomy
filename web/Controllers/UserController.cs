@@ -22,6 +22,19 @@ namespace web.Controllers
         }
 
         /// <summary>
+        /// Used to get user details
+        /// </summary>
+        /// <param name="handle">User Handle</param>
+        /// <returns></returns>
+        [HttpGet("handle/{handle}")]
+        [Authorize]
+        public Models.User GetHandle(String handle)
+        {
+            var Community = User.CommunityFromClaim();
+            return _dbContext.Users.Single(u => u.communityHandle == Community && u.handle == handle);
+        }
+
+        /// <summary>
         /// Searches for User, needs community claim
         /// </summary>
         /// <param name="Community"></param>

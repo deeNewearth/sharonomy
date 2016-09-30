@@ -14,7 +14,13 @@ var apiService = require('../js/apiService');
 
 var Signin = require('../signin');
 
-
+var CommunityTemplate = React.createClass({
+    render() {
+        return (
+        <div>{this.props.data.full_name}</div>
+        );
+    }
+});
 
 module.exports = React.createClass({
     getInitialState() {
@@ -98,7 +104,7 @@ module.exports = React.createClass({
                         <DropdownInput placeholder="Search for your community"
                                        onSelected={this.onSelected}
                                        SearchQuery={this.fetchCommunities}>
-                            <CommunityBanner/>
+                            <CommunityTemplate/>
                         </DropdownInput>
                     </InputGroup>
                     <Button bsStyle="link" onClick={this.onNewCommunity}>

@@ -111,6 +111,7 @@ module.exports = React.createClass({
                 <FormGroup>
                     {this.state.user?
                     <div style={{position:'relative'}}>
+                        
                         <UserCompactTemplate data={this.state.user}/>
 
                         <OverlayTrigger placement="bottom" overlay={changeUserTooltip}>
@@ -136,7 +137,8 @@ module.exports = React.createClass({
                         <DropdownInput placeholder="Search for user"
                                        onSelected={this.onUserSelected}
                                        SearchQuery={this.fetchUsers}>
-                            <UserCompactTemplate/>
+                            <UserCompactTemplate imgStyle={{width:'50px'}} bsStyle={{width:'350px'}}/>
+                            
                         </DropdownInput>
                         
                         <InputGroup.Button>

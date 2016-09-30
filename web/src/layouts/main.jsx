@@ -9,9 +9,11 @@ var LinkContainer = require('react-router-bootstrap').LinkContainer;
 
 var Nav = require('react-bootstrap').Nav;
 var NavItem = require('react-bootstrap').NavItem;
+var NavDropdown = require('react-bootstrap').NavDropdown;
 var apiService = require('../js/apiService');
 var Signin = require('../signin');
 var PubSub = require('pubsub-js');
+var Image = require('react-bootstrap').Image;
 
 module.exports = React.createClass({
     getInitialState() {
@@ -28,10 +30,10 @@ module.exports = React.createClass({
     componentDidMount () {
         var me = this;
         this.pubSub_SIGNEDIN_token = PubSub.subscribe('SIGNEDIN', function (msg, data) {
-            me.setState({ signedIn: true });
+            me.setState({ myCreds: data });
         });
         this.pubSub_SIGNEDOUT_token = PubSub.subscribe('SIGNEDOUT', function (msg, data) {
-            me.setState({ signedIn: false });
+            me.setState({ myCreds: null });
         });
 
         //do a soft sign in
@@ -44,6 +46,17 @@ module.exports = React.createClass({
     },
     render() {
         var community = apiService.getCommunity();
+        var dopdownmenuTitle = this.state.myCreds && this.state.myCreds.decoded.ACC ?
+                                <span>
+                                {
+                                    this.state.myCreds.avatar ?
+                                    
+                                            <Image style={{ height: '30px', float: 'left',marginTop: '-4px' }}
+                                                    src={this.state.myCreds.avatar} circle/>
+                                            :<i className="fa fa-user"></i>
+                                }
+                                {this.state.myCreds.decoded.unique_name}
+                                </span>:'';
         return (
             <div>
                 <Navbar expanded={ this.state.navExpanded } onToggle={ this.onNavbarToggle }>
@@ -53,17 +66,37 @@ module.exports = React.createClass({
                                         style={{maxWidth: '250px',maxHeight: '50px',overflow: 'hidden'}}
                                >{community?community.handle:''}</LinkReact>
                     </Navbar.Brand>
-                    <Navbar.Toggle />
+    
+                      <Navbar.Toggle />
+
+                      
                   </Navbar.Header>
 
+                    
+
                   <Navbar.Collapse>
+
                     <Nav pullRight>
-                       
-                         <LinkContainer to="/issue">
-                            <NavItem onClick={ this.onNavItemClick } eventKey={1} >Issue</NavItem>
-                        </LinkContainer>
+
                         {
-                            this.state.signedIn?
+                            this.state.myCreds && this.state.myCreds.decoded.ACC ?
+                            <NavDropdown eventKey={4} title={dopdownmenuTitle} id="basic-nav-dropdown">
+
+                                <LinkContainer to="/issue">
+                                    <NavItem onClick={ this.onNavItemClick } eventKey={4.1} >Issue</NavItem>
+                                </LinkContainer>
+
+                                <NavItem eventKey={4.2} 
+                                             onClick={this.onNavItemClick
+                                                     .bind(null, { funcCall: apiService.signOut })}>
+                                        <Glyphicon glyph="log-out" /> Sign out
+                                </NavItem>
+
+                            </NavDropdown>
+                            :
+                            (
+                                
+                                this.state.myCreds ?
                                 <NavItem eventKey={2} onClick={this.onNavItemClick
                                     .bind(null, { funcCall: apiService.signOut })}>
                                         <Glyphicon glyph="log-out" /> Sign out</NavItem>
@@ -72,11 +105,16 @@ module.exports = React.createClass({
                                    onClick={this.onNavItemClick
                                     .bind(null, { funcCall: apiService.getcredsAync.bind(null, false)})}>
                                        <Glyphicon glyph="log-in" /> Sign in</NavItem>
+
+                            )
+                            
                         }
-                        
+
+
                         
                     </Nav>
                   </Navbar.Collapse>
+
 
                 </Navbar>
 
