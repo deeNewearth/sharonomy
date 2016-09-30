@@ -9,6 +9,7 @@ var PubSub = require('pubsub-js');
 require('bootstrap/dist/css/bootstrap.css');
 require('./assets/font-awesome-4.6.3/css/font-awesome.css');
 require('./assets/customPositions.css');
+require('./assets/customColors.css');
 
 var EditCommunity = require('./components/editCommunity');
 var ChooseCommunity = require('./components/chooseCommunity');
@@ -21,6 +22,7 @@ var MainLayout = require('./layouts/main');
 var CommunityIssue = require('./components/issueHours/issueHours');
 var ShowTransaction = require('./components/issueHours/showTransaction');
 var Landing = require('./landing');
+var TxHistory = require('./components/balance/history');
 
 
 //var testComp = require('./components/recentIssues');
@@ -53,8 +55,9 @@ var Wrapper = React.createClass({
             <Router history={browserHistory} >
                 <Route component={MainLayout}>
                     <Route path="/" component={Landing}/>
-                    <Route path="/issue" component={CommunityIssue}/>
+                    <Route path="issue" component={CommunityIssue}/>
                     <Route path="transaction/:mutationHash" component={ShowTransaction}/>
+                    <Route path="txhistory" component={TxHistory}/>
                     <Route path="editcommunity/:handle" component={EditCommunity}/>
                 </Route>
             </Router>

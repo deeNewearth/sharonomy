@@ -159,14 +159,11 @@ module.exports = React.createClass({
                     }
                 }
 
-                reject('no stored key');
+                reject({ message: 'no stored key' });
             })
             .catch(function (error) {
 
-                if (me.pubKeyCallBack.savedKeyOnly) {
-                    me.pubKeyCallBack.error_callback('no saved key');
-
-                } else {
+                if (!me.pubKeyCallBack.error_callback({ message: 'no saved key' })) {
                     me.setState({ showModal: true });
                 }
 

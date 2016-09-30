@@ -27,6 +27,7 @@ var bizValidator = require('../../js/bizValidator');
 require('./editUser.css');
 
 var request = require('superagent');
+var withsupererror = require('../../js/withsupererror');
 var apiService = require('../../js/apiService');
 var openChain = require('openchain');
 
@@ -211,7 +212,7 @@ module.exports = React.createClass({
 
 
         RSVP.hash({
-            key: apiService.getcredsAync(),
+            creds: apiService.getcredsAync(),
             apiClent: apiService.ensureAPIClient()
         })
 
@@ -219,7 +220,7 @@ module.exports = React.createClass({
 
             return RSVP.hash({
                 info :results.apiClent.getDataRecord('/aka/' + me.state.handle + '/', 'info'),
-                key: results.key.hdPrivateKey,
+                key: results.creds.hdPrivateKey,
                 apiClent:results.apiClent
             });
         })
@@ -228,11 +229,6 @@ module.exports = React.createClass({
 
             var transaction = new openChain.TransactionBuilder(results.apiClent);
             transaction.key = results.key;
-
-            /*transaction.addRecord(info.key,
-                openChain.encoding.encodeString(JSON.stringify({
-                    email: me.state.email
-                })), info.version);*/
 
             return transaction.updateAccountRecord('/aka/' + me.state.handle + '/',
                 apiService.getAssetName(), Long.fromString("0"))

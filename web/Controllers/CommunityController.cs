@@ -30,12 +30,22 @@ namespace web.Controllers
             _dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Community information by handle
+        /// </summary>
+        /// <param name="handle"></param>
+        /// <returns></returns>
         [HttpGet("handle/{handle}")]
         public Models.Community Gethandle(String handle)
         {
             return _dbContext.Communities.Single(c => c.handle == handle);
         }
 
+        /// <summary>
+        /// Search for community
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
         [HttpGet("{pattern}")]
         public IEnumerable<Models.Community> Get(String pattern)
         {
@@ -100,6 +110,11 @@ namespace web.Controllers
 
         }
 
+        /// <summary>
+        /// Updates community information
+        /// </summary>
+        /// <param name="community"></param>
+        /// <returns></returns>
         [HttpPost]
         [Authorize]
         public async Task<Models.Community> Post( [FromBody]Models.Community community)
@@ -131,6 +146,12 @@ namespace web.Controllers
         }
 
 
+        /// <summary>
+        /// Adds a new Community
+        /// </summary>
+        /// <param name="handle"></param>
+        /// <param name="req"></param>
+        /// <returns></returns>
         [HttpPut("{handle}")]
         [Converters.UniqueViolation("PK_Communities", "handle", "This community handle is already taken")]
         [Authorize]
@@ -215,10 +236,6 @@ namespace web.Controllers
 
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        
     }
 }

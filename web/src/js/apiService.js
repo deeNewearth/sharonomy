@@ -7,6 +7,10 @@ var _signinDefPromise = null;
 var _apiClientPromise = null;
 var _Community = null;
 
+var _savedKeyOnly = true;
+var Long = require('Long');
+
+
 module.exports = {
     signOut() {
         _signinDefPromise = null;
@@ -53,11 +57,14 @@ module.exports = {
                         return apiClient.getAccountRecord(key.path.toString(), key.name, record.version)
                             .then(function (previousRecord) {
                                 var newValue = record.value == null ? null : openChain.encoding.decodeInt64(record.value.data);
-                                records.push({
-                                    key: key,
-                                    valueDelta: newValue == null ? null : newValue.subtract(previousRecord.balance),
-                                    value: newValue
-                                });
+                                var valueDelta = newValue == null ? null : newValue.subtract(previousRecord.balance);
+                                if (valueDelta && !valueDelta.equals(Long.ZERO)) {
+                                    records.push({
+                                        key: key,
+                                        valueDelta: valueDelta,
+                                        value: newValue
+                                    });
+                                }
                             });
                     });
                 }
@@ -69,8 +76,10 @@ module.exports = {
         }))
 
         .then(function () {
+            var metadata = openChain.encoding.decodeString(mutationMessage.metadata);
+                
             return {
-                metadata: openChain.encoding.decodeString(mutationMessage.metadata),
+                metadata: metadata ? JSON.parse(metadata) : {},
                 accRecords: records
             };
         });
@@ -94,6 +103,10 @@ module.exports = {
         return _apiClientPromise;
     },
     getcredsAync(savedKeyOnly) {
+        //Once a hard sign in is called. any calls to softsign in
+        //are not rejected instead we go for sign in modal
+        if (!savedKeyOnly)
+            _savedKeyOnly = false;
         var me = this;
         if (null == _signinDefPromise) {
             _signinDefPromise = new RSVP.Promise(function(resolve, reject) {
@@ -104,10 +117,13 @@ module.exports = {
                         PubSub.publish('SIGNEDIN',res);
                     },
                     error_callback: function (error) {
-                        reject(error);
-                        _signinDefPromise = null;
-                    },
-                    savedKeyOnly: savedKeyOnly
+                        if (_savedKeyOnly) {
+                            reject(error);
+                            _signinDefPromise = null;
+                            return true;
+                        } else
+                            return false;
+                    }
                 });
 
             });

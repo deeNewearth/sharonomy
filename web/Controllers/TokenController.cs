@@ -34,6 +34,12 @@ namespace web.Controllers
                 || User.Claims.Single(c => c.Type == TokenController.ADMINCLAIM).Value != "true")
                 throw new UnauthorizedAccessException("not a community admin");
         }
+
+        public static String CommunityFromClaim(this ClaimsPrincipal User)
+        {
+            return User.Claims.Single(c => c.Type == TokenController.COMMUNITYCLAIM).Value;
+        }
+
     }
 
     [Route("api/[controller]")]
@@ -185,6 +191,12 @@ namespace web.Controllers
         }
 
 
+        /// <summary>
+        /// Returns types of claims i might have by public key
+        /// </summary>
+        /// <param name="Community"></param>
+        /// <param name="PubKey"></param>
+        /// <returns></returns>
         [HttpGet("myHandles/{Community}/{PubKey}")]
         [AllowAnonymous]
         public async Task<Dictionary<String, String>> myHandles(String Community, String PubKey)

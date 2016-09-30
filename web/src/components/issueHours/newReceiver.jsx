@@ -13,8 +13,8 @@ var Form = require('react-bootstrap').Form;
 
 var DropdownInput = require('../inputDropDown');
 var request = require('superagent');
+var withsupererror = require('../../js/withsupererror');
 
-var RSVP = require('rsvp');
 var apiService = require('../../js/apiService');
 
 var EditUser = require('../editUser/editUser');
@@ -60,21 +60,17 @@ module.exports = React.createClass({
     },
 
     fetchUsers(pattern) {
-        return new RSVP.Promise(function (resolve, reject) {
-            if (!pattern) {
-                resolve(null);
-                return;
-            }
-            request
-            .get('/api/User/' + apiService.getCommunityHandle() + '/' + pattern)
-            .set('Accept', 'application/json')
-            .end(function (err, res) {
-                if (err)
-                    reject(err);
-                else
-                    resolve(res.body);
-            });
 
+        return apiService.getcredsAync()
+        .then(function(creds){
+            return request
+            .get('/api/User/' + pattern)
+            .set('Accept', 'application/json')
+            .authBearer(creds.token)
+            .use(withsupererror).end();
+        })
+        .then(function(results){
+            return results.body;
         });
     },
 

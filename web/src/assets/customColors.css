@@ -1,0 +1,8 @@
+﻿.balanceTable thead {
+    border-bottom: 1px solid gray;
+    font-weight: bold;
+}
+
+.balanceTable tbody{
+    border-bottom: 1px solid gray;
+}

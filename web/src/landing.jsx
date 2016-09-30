@@ -4,6 +4,7 @@ var apiService = require('./js/apiService');
 var CommunityBanner = require('./components/communityBanner');
 var ShowifSignedin = require('./components/showifSignedin');
 var LinkReact = require('react-router').Link;
+var BalanceSummery = require('./components/balance/summery');
 
 module.exports = React.createClass({
     render() {
@@ -16,6 +17,8 @@ module.exports = React.createClass({
                 <ShowifSignedin admin={true}>
                     <LinkReact to={'/issue' }>Issue Hours</LinkReact>
                 </ShowifSignedin>
+
+                <BalanceSummery/>
 
             </div>
             );

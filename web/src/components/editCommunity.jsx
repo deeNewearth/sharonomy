@@ -11,7 +11,6 @@ var Button = require('react-bootstrap').Button;
 var openChain = require('openchain');
 var request = require('superagent');
 require('superagent-auth-bearer')(request);
-var RSVP = require('rsvp');
 
 var bizValidator = require('../js/bizValidator');
 var apiService = require('../js/apiService');
@@ -57,7 +56,7 @@ module.exports = React.createClass({
             })
 
             .catch(function (err) {
-                me.setState({ Errors: { form: 'Failed to load details :' + err.message } })
+                me.setState({ Errors: { form: 'Failed to load details :' + err.message } });
             });
         }
     },

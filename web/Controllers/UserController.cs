@@ -5,12 +5,14 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 // For more information on enabling Web API for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace web.Controllers
 {
     [Route("api/[controller]")]
+    
     public class UserController : Controller
     {
         private Models.CommunityContext _dbContext;
@@ -19,9 +21,18 @@ namespace web.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("{Community}/{pattern}")]
-        public Models.User[] Get(String Community,String pattern)
+        /// <summary>
+        /// Searches for User, needs community claim
+        /// </summary>
+        /// <param name="Community"></param>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
+        [HttpGet("{pattern}")]
+        [Authorize]
+        public Models.User[] Get(String pattern)
         {
+            var Community = User.CommunityFromClaim();
+
             var ret = _dbContext.Users
                 .Where(u => u.communityHandle == Community &&
                     (u.handle.Contains(pattern) || u.name.Contains(pattern)
@@ -31,14 +42,11 @@ namespace web.Controllers
             return ret;
         }
 
-        [HttpPost("{handle}")]
-        public String Post(String Handle,[FromBody]string value)
-        {
-            return "value";
-        }
+        
 
         /// <summary>
         /// creates a new User, will throw exception is User handle or email exists
+        /// the transaction assures that the signer has permission to create user in the tree
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
@@ -47,8 +55,6 @@ namespace web.Controllers
         [Converters.UniqueViolation("AK_Users_communityHandle_email", "email", "This email address already exists")]
         public async Task<Models.User> Post([FromBody]Models.updateUserRequest req)
         {
-
-
             using (var transaction = _dbContext.Database.BeginTransaction())
             {
                 _dbContext.Users.Add(req.user);
@@ -66,16 +72,6 @@ namespace web.Controllers
             return req.user;
         }
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        
     }
 }
